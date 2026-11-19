@@ -23,9 +23,10 @@
 | 日程（按日期分组） | implemented | true | `src/lib/events.ts`、`src/app/api/events/*`、`src/components/EventView.tsx` | A3 已实做：标题/日期/起止时间/地点/备注/标签 + 今天/明天/本周/更远/已过去分组 + 软删除/恢复；`items` 表 `type=event`；e2e 15/15 过 |
 | 打卡（习惯 + 随手记 / 连续天数） | implemented | true | `src/lib/checkins.ts`、`src/app/api/habits/*`、`src/app/api/checkins/*`、`src/components/CheckinView.tsx` | A4 已实做：习惯定义+每日打卡(可补记)+随手记一条、同习惯同日幂等、连续天数(今天没打从昨天算)、习惯软删除保留记录；`items` 表 `type=habit`/`type=checkin`；e2e 25/25 过 |
 | 长期目标（本地配置手填） | implemented | true | `src/lib/goals.ts`、`src/app/api/goals/*`、`src/components/GoalView.tsx` | A5 已实做：五项字段(标题/描述/目标日期/状态/进度手填)，存 `data/goals.json` **不进 SQLite 主库**（清单 P13）；独立不联动；删除直接移除；「规划」tab 改名「长期目标」；e2e 16/16 过 |
-| 首页仪表盘（备忘录占位） | placeholder | false | `src/components/AppShell.tsx`（骨架卡） | **入口架构**：侧栏「记录与规划」一个导航项 + 内部**五 tab**（待办/日程/打卡/备忘录/长期目标，用户确认）；首页五卡都跳该入口并定位对应 tab；仅备忘录 tab 仍占位 |
+| 首页仪表盘（备忘录占位） | placeholder | false | `src/components/AppShell.tsx` | **入口架构**：侧栏「记录与规划」一个导航项 + 内部**五 tab**（待办/日程/打卡/备忘录/长期目标，用户确认，保留）；首页已改版为单列滚动分区，「查看全部 →」跳对应 tab；仅备忘录 tab 仍占位 |
 | AI 对话基础（普通对话两模式 / 多会话） | implemented | true | `src/lib/chat.ts`、`src/app/api/chat/*`、`src/components/ChatView.tsx` | A6 已实做：DeepSeek-Flash 一次性返回；临时模式 Stateless 不落库、普通模式多会话(新建/切换/重命名/删除/清空)+最近 10 轮上下文；会话壳存 `memory` 表 `scope=chat_session`、消息存 `ai_messages`，**不新增表**；侧栏新增「AI 对话」项；结构化输出仅预留 `callStructured` 不落地；不做 SSE/记账/预算/AI 限流（v0.6 未要求）；e2e 25/25 过（含真实模型调用） |
-| 三层记忆 / 检索工具 / 管家页 / 记下来 | placeholder | false | — | A7~A10 待做：三层记忆按功能映射、function calling 查 .md 实时索引、管家无状态问答、手动「记下来」`#source/网页AI` |
+| 三层记忆 + 功能映射表 | implemented | true | `src/lib/memory.ts`、`src/app/api/memory/*`、`src/components/MemorySettings.tsx` | A7 已实做：三层=基础身份(profile)/功能记忆(feature:chat)/临时上下文(复用 A6 最近10轮)；预设模板懒初始化 + 设置页编辑；映射表 TS 常量默认 + `memory` 表覆盖供设置页改；记忆带 tags 可按标签筛选；普通模式按 chat 映射注入 system、临时模式不注入；与 `chat_session` scope 隔离，**不新增表**；本期仅 chat 生效，assistant/capture/report 留预留条目；e2e 29/29 过 |
+| 检索工具 / 管家页 / 记下来 | placeholder | false | — | A8~A10 待做：function calling 查 .md 实时索引、管家无状态问答、手动「记下来」`#source/网页AI` |
 
 ## 二期
 
@@ -65,6 +66,9 @@
 
 ## 变更记录
 
+- 2026-11-19（一期 A7 三层记忆 + 映射表）：实做三层记忆与功能映射，A6 普通模式接入注入、
+  临时模式保持不注入；复用 `memory` 表不新增表；设置页新增「记忆与映射」区。
+  `scripts/e2e-memory.mjs` 29/29 过；六套回归 15/15、15/15、27/27、16/16、25/25、25/25 过。
 - 2026-11-19（首页 UI 改版，插队于 A7 之前）：首页从「卡片跳 tab」改为单列从上到下
   5 个实内容分区 + 垂直滚动 + 就地 + 号弹框编辑；新增 `HomeDashboard.tsx`/`Modal.tsx`；
   补 `PATCH /api/checkins/[id]` 让随手记可编辑（仅自由记录，习惯打卡不可编辑）。

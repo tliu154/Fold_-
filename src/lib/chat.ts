@@ -5,12 +5,14 @@
  * - 会话标题：默认由首条用户消息前 20 字派生；重命名后以覆盖值为准
  * - 清空 = 清空该会话消息但保留会话壳
  * - 模型：DeepSeek-Flash，OpenAI 兼容 chat/completions，一次性返回（不做 SSE）
+ * - A7：普通模式按 chat 映射注入三层记忆的 ①② 到 system；临时模式不注入
  * - 结构化输出：本期只预留 callStructured 能力，不落地调用（分类/提案属后续功能）
  * - 不做：ai_usage 记账 / 月度预算 / AI 专用限流（v0.6 未要求）
  */
 import crypto from "node:crypto";
 import { getDb } from "./db";
 import { getDailyModel } from "./config";
+import { buildSystemPrompt } from "./memory";
 
 const SESSION_SCOPE = "chat_session";
 const CONTEXT_ROUNDS = 10; // 最近 10 轮 = 20 条消息
@@ -227,21 +229,23 @@ export async function callStructured<T>(messages: { role: string; content: strin
 }
 
 /**
- * 发送消息：
- * - mode="temp"：不落库，仅用当条消息调用模型
- * - mode="normal"：落库用户消息 + 最近 10 轮上下文 + 落库回复
+ * 发送消息（A7 接入三层记忆）：
+ * - mode="temp"：Stateless，不落库、**不注入记忆**，仅用当条消息调用模型
+ * - mode="normal"：按 chat 映射注入「基础身份 + chat 功能记忆」到 system，
+ *   再加最近 10 轮对话历史（第③层临时上下文）；用户消息与回复都落库
+ * - 记忆为空则不拼 system 消息（不浪费 token）
  */
 export async function sendMessage(input: {
   mode: "temp" | "normal";
   session_id?: string;
   message: string;
-}): Promise<ChatResult & { session_id: string | null }> {
+}): Promise<ChatResult & { session_id: string | null; memory_applied: boolean }> {
   const text = input.message.trim();
   if (!text) throw new Error("消息不能为空");
 
   if (input.mode === "temp") {
     const r = await callChat([{ role: "user", content: text }]);
-    return { ...r, session_id: null };
+    return { ...r, session_id: null, memory_applied: false };
   }
 
   const sessionId = input.session_id ?? createSession().id;
@@ -249,7 +253,11 @@ export async function sendMessage(input: {
 
   insertMessage(sessionId, "user", text);
   const context = buildContext(sessionId);
-  const r = await callChat(context);
+  const system = buildSystemPrompt("chat");
+  const messages = system
+    ? [{ role: "system", content: system }, ...context]
+    : context;
+  const r = await callChat(messages);
   insertMessage(sessionId, "assistant", r.reply);
-  return { ...r, session_id: sessionId };
+  return { ...r, session_id: sessionId, memory_applied: Boolean(system) };
 }

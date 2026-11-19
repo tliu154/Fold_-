@@ -18,6 +18,7 @@ import CheckinView from "./CheckinView";
 import GoalView from "./GoalView";
 import ChatView from "./ChatView";
 import HomeDashboard from "./HomeDashboard";
+import MemorySettings from "./MemorySettings";
 import type { FeatureModule } from "@/features";
 
 type Page = "home" | "records" | "chat" | "assistant" | "knowledge" | "settings";
@@ -184,6 +185,7 @@ function SettingsPage({ features }: { features: FeatureModule[] | null }) {
           </ul>
         )}
       </div>
+      <MemorySettings />
     </section>
   );
 }

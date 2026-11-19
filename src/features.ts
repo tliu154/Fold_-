@@ -102,12 +102,20 @@ export const features: FeatureModule[] = [
     note: "A6 已实做：DeepSeek-Flash 一次性返回、临时模式不落库、普通模式多会话+最近10轮上下文、会话壳存 memory 表不新增表；不做 SSE/记账/预算/AI限流；结构化输出仅预留能力",
   },
   {
+    id: "memory",
+    name: "三层记忆 + 功能映射表",
+    enabled: true,
+    status: "implemented",
+    phase: "一期",
+    note: "A7 已实做：基础身份/功能记忆/临时上下文(复用 A6 最近10轮)；预设模板+设置页编辑；映射表 TS 常量+memory 表覆盖；普通模式注入、临时模式不注入；记忆带 tags；复用 memory 表不新增表",
+  },
+  {
     id: "ai-chat",
-    name: "三层记忆 / 检索工具 / 管家页 / 记下来",
+    name: "检索工具 / 管家页 / 记下来",
     enabled: false,
     status: "placeholder",
     phase: "一期",
-    note: "A7~A10 待做：三层记忆按功能映射、function calling 查 .md 实时索引、管家无状态问答、手动「记下来」",
+    note: "A8~A10 待做：function calling 查 .md 实时索引、管家无状态问答、手动「记下来」",
   },
   {
     id: "save-note",

@@ -1085,6 +1085,143 @@ button {
   color: #a32d2d;
 }
 
+/* ---------- 记忆与映射设置（一期 A7） ---------- */
+
+.memory-block {
+  margin-top: 16px;
+}
+
+.memory-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.memory-head-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.memory-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+
+.memory-tag-input {
+  width: 180px;
+  flex-shrink: 0;
+}
+
+.memory-list {
+  margin-bottom: 20px;
+}
+
+.memory-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.memory-row-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.memory-content {
+  margin-top: 3px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.memory-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.memory-tags .tag {
+  font-size: 11px;
+  padding: 1px 6px;
+}
+
+.memory-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.memory-subtitle {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 16px 0 4px;
+}
+
+.memory-map {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-top: 10px;
+}
+
+.memory-map-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.memory-map-row:last-child {
+  border-bottom: none;
+}
+
+.memory-map-name {
+  min-width: 130px;
+  font-weight: 500;
+}
+
+.memory-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.memory-check input {
+  accent-color: var(--accent);
+}
+
+.memory-map-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.memory-preview {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
 @media (max-width: 720px) {
   .checkin-forms,
   .habit-grid {
