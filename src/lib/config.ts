@@ -18,6 +18,11 @@ export function getDataDir(): string {
   return path.resolve(process.cwd(), raw);
 }
 
+/** create 类 op 是否自动批准（阶段 1）；delete 永远人工批准，此开关无效 */
+export function getAutoApproveCreate(): boolean {
+  return (process.env.AUTO_APPROVE_CREATE ?? "false").toLowerCase() === "true";
+}
+
 export function isDev(): boolean {
   return process.env.NODE_ENV !== "production";
 }

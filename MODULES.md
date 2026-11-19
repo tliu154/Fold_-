@@ -9,8 +9,8 @@
 | 项目框架 / 建表 / 鉴权 / 配置 / PWA 壳 | implemented | true | `src/lib/*`、`db/schema.sql`、`public/` | 实做 |
 | 简约 UI 基底 + 空状态 | implemented | true | `src/app/globals.css`、`src/components/*` | 实做 |
 | 模块开关 / 适配器接口 / MODULES.md | implemented | true | `src/features.ts`、`src/adapters/` | 实做骨架 |
-| op 同步闭环 / 审批台 / 快照 / 审计 | placeholder | false | `src/app/api/sync/*`、`ops/*` | 占位；阶段 1 前先走澄清门 |
-| 统一收件箱 + LLM 分类路由 | placeholder | false | `src/app/api/capture/` | 占位；分类枚举等细节不提前写死 |
+| op 同步闭环 / 审批台 / 快照 / 审计 | implemented | true | `src/lib/sync.ts`、`api/sync/*`、`api/ops/*`、`src/lib/localDb.ts`、`src/lib/syncClient.ts`、`InboxView`、`ApproveView` | 阶段 1 实装（2026-11-19 规格确认：自动同步+手动兜底、人工批 create、行级 JSON 快照、冲突快捷按钮、批量批准） |
+| 统一收件箱 + LLM 分类路由 | placeholder | false | `src/app/api/capture/` | 占位；分类枚举等细节不提前写死；轻视图「记一条」固定 note 已随阶段 1 落地 |
 | AI 对话 + 记忆分层 | placeholder | false | `src/app/api/ai/chat/` | 占位；模型/预算/记忆沉淀细节待澄清 |
 | 对话「存为笔记」按钮 | placeholder | false | `src/app/api/ai/save-answer/` | 占位；已敲定（提示词 9.1），实现前仍先问一次 |
 | 每日推送 / 任务到期提醒 | pending_clarify | false | `src/lib/cron.ts`（空调度占位） | 留空占位 |
@@ -32,4 +32,7 @@
 
 ## 变更记录
 
+- 2026-11-19（阶段 1）：op 同步闭环实装并推送。规格 8 条经用户确认；
+  新增路由 `/api/ops/:op_id/resolve`（冲突解决）与 `/api/ops/batch-approve`（批量批准），
+  均属已确认规格第 6 条范围。
 - 2026-11-19：阶段 0 建立本清单，与 features.ts 初始状态一致。

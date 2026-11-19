@@ -1,15 +1,18 @@
 /**
- * GET /api/ops/conflicts —— 冲突列表与人工合并数据（阶段 0 占位）
- * 规则（阶段 1 实现）：base_version 过期标 conflict，禁止自动合并
- * TODO: 待澄清后实现
+ * GET /api/ops/conflicts —— 冲突列表与人工合并数据（阶段 1 实装）
+ * 返回每条冲突 op 的客户端 payload 与服务端当前条目，供人工比对；
+ * 解决入口：POST /api/ops/:op_id/resolve（以主库为准 / 以移动端为准）
  */
 import { requireAuth } from "@/lib/auth";
-import { notImplemented } from "@/lib/api";
+import { listConflicts, getDbVersion } from "@/lib/sync";
 
 export function GET(req: Request) {
   const denied = requireAuth(req);
   if (denied) return denied;
 
-  // TODO: 待澄清后实现
-  return notImplemented("ops-conflicts");
+  const conflicts = listConflicts();
+  return Response.json(
+    { conflicts, db_version: getDbVersion() },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }

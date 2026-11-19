@@ -1,20 +1,20 @@
 "use client";
 
 /**
- * 响应式外壳（阶段 0 · 简约 UI 基底）
+ * 响应式外壳（阶段 1 更新）
  * 视图归属（用户已澄清）：手机与平板都走「轻视图」；笔记本走完整工作台
- * - 轻视图（手机/平板）：输入框 + 列表 + 对话页 + 周报页，底部导航 4 项，
- *   不出现长文档编辑、审批台、设置迷宫
- * - 工作台（笔记本）：窄侧栏 + 主工作区 + 审批台
- * - 判定：移动 UA（含 HarmonyOS/Android/iPad）或触摸主指针 → 轻视图；
- *   其余 → 工作台。判定在客户端首帧后完成
+ * - 轻视图（手机/平板）：记录（实装闭环）+ 对话 + 周报 + 我的，底部导航 4 项
+ * - 工作台（笔记本）：窄侧栏 + 收件箱（只读）+ 审批台（实装）+ 对话 + 周报
+ * - 判定：移动 UA（含 HarmonyOS/Android/iPad）或触摸主指针 → 轻视图
+ * - 调试覆盖：URL 加 ?view=light 或 ?view=desktop 可强制视图（笔记本上测手机流程用）
  * - 未登录（/api/features 返回 401）自动跳 /login
- * - 占位按钮点击提示「该功能待定义」
  */
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PlaceholderButton from "./PlaceholderButton";
 import EmptyState from "./EmptyState";
+import InboxView from "./InboxView";
+import ApproveView from "./ApproveView";
 import type { FeatureModule } from "@/features";
 
 type View = "inbox" | "chat" | "weekly" | "approve" | "settings";
@@ -47,6 +47,12 @@ export default function AppShell() {
   const [mode, setMode] = useState<Mode | null>(null);
 
   useEffect(() => {
+    // 调试覆盖：?view=light|desktop（笔记本上测手机流程）
+    const q = new URLSearchParams(window.location.search).get("view");
+    if (q === "light" || q === "desktop") {
+      setMode(q);
+      return;
+    }
     setMode(detectLightMode() ? "light" : "desktop");
   }, []);
 
@@ -95,7 +101,7 @@ export default function AppShell() {
 
   return (
     <div className={`shell ${mode === "light" ? "light" : "desktop"}`}>
-      {/* 电脑端窄侧栏 */}
+      {/* 笔记本端窄侧栏 */}
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-mark" aria-hidden />
@@ -121,7 +127,7 @@ export default function AppShell() {
       {/* 主工作区 */}
       <main className="main">
         <div className="main-inner">
-          {view === "inbox" && <InboxView />}
+          {view === "inbox" && <InboxView mode={mode} />}
           {view === "chat" && <ChatView />}
           {view === "weekly" && <WeeklyView />}
           {view === "approve" && <ApproveView />}
@@ -148,34 +154,7 @@ export default function AppShell() {
   );
 }
 
-/* ---------- 各视图（阶段 0 均为基底 + 占位） ---------- */
-
-function InboxView() {
-  const [draft, setDraft] = useState("");
-
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    // 统一收件箱待澄清：此处不发送任何请求
-    setDraft("");
-  }
-
-  return (
-    <section>
-      <h1 className="view-title">收件箱</h1>
-      <p className="view-desc">想法、待办、随手问——先记下来，分类以后再说。</p>
-      <form className="capture-row" onSubmit={submit}>
-        <input
-          className="input"
-          placeholder="随手记一条…"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-        />
-        <PlaceholderButton label="记一条" hint="统一收件箱待定义：分类路由细节澄清后实现" primary />
-      </form>
-      <EmptyState text="还没有内容，先记一条" />
-    </section>
-  );
-}
+/* ---------- 占位视图（阶段 2+ 逐个走澄清门后实装） ---------- */
 
 function ChatView() {
   return (
@@ -202,16 +181,6 @@ function WeeklyView() {
       <div className="action-row">
         <PlaceholderButton label="生成周报草稿" hint="周报功能待定义" />
       </div>
-    </section>
-  );
-}
-
-function ApproveView() {
-  return (
-    <section>
-      <h1 className="view-title">审批台</h1>
-      <p className="view-desc">移动端提交的操作请求，先快照、再审批、再应用。</p>
-      <EmptyState text="没有待审批的操作" />
     </section>
   );
 }
@@ -244,7 +213,7 @@ function SettingsView({
       <div className="action-row">
         <PlaceholderButton label="立即备份" hint="备份功能待定义" />
       </div>
-      <p className="muted footnote">阶段 0：仅框架与占位，不含业务逻辑</p>
+      <p className="muted footnote">阶段 1：op 同步闭环已实装，其余功能待逐个澄清</p>
     </section>
   );
 }

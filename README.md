@@ -1,13 +1,13 @@
 # Fold_归匣
 
-> Local-First 个人中枢平台 · **阶段 0：项目框架与占位**（不含任何业务逻辑）
+> Local-First 个人中枢平台 · **阶段 1：op 同步闭环已实装**
 > 笔记本是唯一主库、唯一写入者；移动端只是「轻量缓存 + 提案者」。
 
 ## 当前状态
 
-阶段 0 已交付：项目骨架、建表、登录鉴权、模块注册表、API 路由骨架（占位返回 501）、
-PWA 壳、简约 UI 基底（含空状态与占位按钮）。**所有用户可见的业务功能均未实现**，
-补实前必须逐个走「功能澄清门」。
+- 阶段 0（框架与占位）✅：骨架、建表、登录鉴权、模块注册表、PWA 壳、简约 UI 基底
+- 阶段 1（op 同步闭环）✅：移动端记录 → push → 审批 → 快照/审计/version+1 → 拉快照对齐
+- 其余功能仍为占位（501 / 占位按钮），补实前逐个走「功能澄清门」
 
 模块状态见 [MODULES.md](./MODULES.md)。
 
@@ -46,9 +46,54 @@ npm run dev
 8. 视图归属：手机 / 平板（移动 UA 或触摸设备，含鸿蒙、iPad）→ 轻视图 + 底部导航 4 项（记录 / 对话 / 周报 / 我的），无审批台入口；笔记本 → 侧栏 + 工作台 + 审批台。测试方法：浏览器开发者工具切设备模拟（如 iPhone / 平板 UA）刷新即见轻视图
 9. `MODULES.md` 与 `src/features.ts` 状态一致
 
-## 局域网 HTTPS（手机同 WiFi 访问 / PWA 安装）
+## 阶段 1 · op 同步闭环（已实装）
 
-PWA 与 Service Worker 需要安全上下文（HTTPS 或 localhost）。两种方式任选：
+### 同步协议（已确认规格）
+
+- 移动端「记一条」固定 `type=note`（LLM 分类路由留给阶段 2）
+- 联网自动 push + 打开 app 自动 pull 一次 + 手动「同步」按钮兜底
+- `op_id` 幂等（重复返回 duplicate）；非 create 类 `base_version` 过期 → conflict，禁止自动合并
+- create/update 人工批准（`AUTO_APPROVE_CREATE` 默认 false）；delete 永远人工批准
+- 批准执行顺序（不可调换）：行级 JSON 快照 → 应用 → `applied_ops` 审计 → version+1
+- 全库版本号存 `memory` 表（`scope='system'`），未新增表
+- 驳回后移动端草稿留本地不自动重投；拉快照整体替换缓存（排除软删除条目）
+- 审批台（笔记本端）：逐条 + 批量批准；冲突可用「以主库为准 / 以移动端为准」快捷按钮
+
+### 阶段 1 验收步骤（手机 + 笔记本）
+
+1. 笔记本 `npm run dev`，手机同 WiFi 访问（见下方 HTTPS 配置）并登录
+2. 手机「记录」页输入一条 → 点「记一条」→ 列表出现该条（灰色 + 「未同步」标签）
+3. 联网时自动投递 → 标签变「已提交 · 待审批」
+4. 笔记本打开「审批台」→ 看到该 op → **批准前**主库无变化（收件箱只读列表不出现该条）
+5. 点「批准」→ 库版本 +1；`data/snapshots/<日期>/` 下出现快照 JSON；
+   收件箱只读列表出现该条
+6. 手机点「同步」→ 列表该条变正常条目（本地草稿态消失）
+7. 重复 push 同一 op_id → 返回 `duplicate`
+8. 制造冲突：手机离线改一条（update op 基于旧版本）→ 联网 push → 审批台「冲突」区出现，
+   选「以主库为准」或「以移动端为准」
+9. 手机删除一条 → push → 笔记本审批台批准 → 条目软删除（`deleted_at` 非空），
+   快照文件可恢复
+
+### 笔记本上单机测试（无需手机）
+
+浏览器访问 `http://localhost:3000/?view=light` 强制轻视图模拟手机端，
+再开普通窗口（桌面视图）用审批台，即可单机走完整个闭环。
+移动端本地数据在浏览器 IndexedDB（`fold-local` 库），清站点数据即重置。
+
+### 阶段 1 API 清单
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | `/api/sync/push` | `{device_id, ops[]}` → 逐条 status + snapshot_version |
+| GET | `/api/sync/snapshot?device_id=` | 只读快照（排除软删除），整体替换缓存 |
+| GET | `/api/ops/pending?status=` | 审批台列表（附目标条目信息） |
+| GET | `/api/ops/conflicts` | 冲突列表（客户端 payload vs 主库当前） |
+| POST | `/api/ops/:op_id/approve` | 快照→应用→审计→version+1 |
+| POST | `/api/ops/:op_id/reject` | 驳回并记录原因 |
+| POST | `/api/ops/:op_id/resolve` | 冲突解决：`{resolution: server\|client}` |
+| POST | `/api/ops/batch-approve` | `{op_ids[]}` 批量批准 |
+
+## 局域网 HTTPS（手机同 WiFi 访问 / PWA 安装）PWA 与 Service Worker 需要安全上下文（HTTPS 或 localhost）。两种方式任选：
 
 ### 方式一：mkcert 自签证书（局域网）
 
@@ -83,16 +128,17 @@ tailscale cert <你的机器名>.<tailnet>.ts.net
 ```
 Fold_/
 ├── db/schema.sql          # 8 张表建表 SQL（幂等）
+├── data/                  # SQLite 主库 + snapshots/（不进 Git、不进同步工具）
 ├── src/
 │   ├── features.ts        # 模块注册表（新功能先登记，再走澄清门）
 │   ├── adapters/          # DataSourceAdapter 接口 + 空注册表
-│   ├── lib/               # db / config / auth / rate-limit / cron
+│   ├── lib/               # db / config / auth / rate-limit / cron / sync / localDb / syncClient
 │   ├── instrumentation.ts # 启动时注册定时任务占位
 │   ├── app/
-│   │   ├── api/           # 18 个路由：3 个实做 + 15 个 501 占位
-│   │   ├── page.tsx       # 响应式外壳（桌面侧栏 / 移动底部导航）
+│   │   ├── api/           # health / auth / features 实做；sync+ops 实做（阶段1）；其余 501 占位
+│   │   ├── page.tsx       # 响应式外壳（轻视图 / 工作台，?view= 可覆盖）
 │   │   └── login/         # 登录页
-│   └── components/        # AppShell / PlaceholderButton / EmptyState
+│   └── components/        # AppShell / InboxView / ApproveView / PlaceholderButton / EmptyState
 └── public/                # PWA：manifest / sw.js / icon.svg
 ```
 

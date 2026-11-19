@@ -38,20 +38,22 @@ export const features: FeatureModule[] = [
     status: "implemented",
   },
 
-  // ---- 方向已敲定，占位（阶段 1 前先走澄清门） ----
+  // ---- 阶段 1 实装 ----
   {
     id: "sync",
     name: "op 同步闭环 / 审批台 / 快照 / 审计",
-    enabled: false,
-    status: "placeholder",
-    note: "方向已敲定；实现前先走澄清门",
+    enabled: true,
+    status: "implemented",
+    note: "阶段 1 实装（2026-11-19 规格确认）：行级 JSON 快照、幂等、冲突人工解决、批量批准",
   },
+
+  // ---- 方向已敲定，占位（实现前先走澄清门） ----
   {
     id: "inbox",
     name: "统一收件箱 + LLM 分类路由",
     enabled: false,
     status: "placeholder",
-    note: "方向已敲定，细节待澄清",
+    note: "方向已敲定，细节待澄清；轻视图「记一条」固定 note 已随阶段 1 落地",
   },
   {
     id: "ai-chat",
