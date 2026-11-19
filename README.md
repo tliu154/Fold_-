@@ -19,6 +19,29 @@
 - 定时任务 `node-cron`（当前仅占位空调度）
 - 依赖保持最少：无重型 UI 库，样式用 CSS 变量集中在 `src/app/globals.css`
 
+## ⚠️ Node 版本（务必先看，否则所有 API 报 500）
+
+`better-sqlite3` 是原生模块，`.node` 二进制跟 **Node 的 ABI** 绑定。装依赖时用哪个 Node 版本编译，
+运行时就必须用同一个版本。本机装了**两个 Node**：系统 `v24`（在用）和 WorkBuddy 内置 `v22`。
+如果 API 返回 `NODE_MODULE_VERSION 127 vs 137` 的错误，就是版本错配。
+
+**统一用系统 Node 24**（你日常终端默认的那个）。启动前确认：
+
+```bash
+node -v     # 必须 v24.x，若是 v22.x 请换用系统 Node
+```
+
+若已用错版本装过依赖，重新用 Node 24 编译一次即可（无需 Visual Studio，走预编译包）：
+
+```bash
+# Windows / Git Bash：把系统 Node 放到 PATH 最前
+export PATH="/d/Program Files/nodejs:$PATH"
+npm rebuild better-sqlite3        # 看到 prebuild-install 成功即可
+node -e "require('better-sqlite3'); console.log('OK')"
+```
+
+> `package.json` 里已加 `engines.node >= 24`，npm install 时用错版本会给出警告。
+
 ## 快速开始
 
 ```bash

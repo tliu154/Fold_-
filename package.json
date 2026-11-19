@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "Fold_归匣 —— Local-First 个人中枢平台（阶段 0：框架与占位，不含业务逻辑）",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
