@@ -605,6 +605,111 @@ button {
   color: var(--fg-muted);
 }
 
+/* ---------- 打卡（一期 A4） ---------- */
+
+.checkin-forms {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.checkin-form {
+  margin-bottom: 0;
+}
+
+.checkin-form-title {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.checkin-tags {
+  margin-top: 8px;
+}
+
+.form-notice {
+  color: var(--accent);
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+
+.habit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.habit-card {
+  padding: 16px;
+}
+
+.habit-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.habit-title {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.habit-streak {
+  font-size: 13px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+.habit-streak.on {
+  color: var(--accent);
+}
+
+.habit-meta {
+  margin-top: 4px;
+}
+
+.habit-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.habit-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.habit-date {
+  width: 140px;
+  flex-shrink: 0;
+}
+
+.habit-edit {
+  width: 100%;
+}
+
+.checkin-rec-title {
+  margin-top: 8px;
+}
+
+.checkin-kind {
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .checkin-forms,
+  .habit-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 720px) {
   .shell {
     flex-direction: column;

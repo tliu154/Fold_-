@@ -4,19 +4,19 @@
 > 本机运行，价值 = 整合 + 调度 + 自动化；不是内容平台 / 笔记编辑器（Obsidian 干那个）。
 > 需求以《个人AI枢纽网站_需求对齐清单_v0.6.md》为准；开发规划见 [PROJECT_PLAN.md](./PROJECT_PLAN.md)。
 
-## 当前状态（骨架）
+## 当前状态（一期进行中）
 
-已保留的底层骨架：
+底层骨架：
 - Next.js 15 + TypeScript + better-sqlite3 + zod，PWA 壳
 - 建表（4 张：items / memory / ai_messages / ai_usage）、登录鉴权（HMAC Cookie + Bearer）
-- 实做路由：`/api/health`、`/api/auth/login`、`/api/auth/logout`、`/api/features`、`/api/todos/*`、`/api/events/*`
-- **一期 A2 待办 / A3 日程已实做**：存 `items` 表（`type=todo` / `type=event`），增删改查 + 软删除/回收站恢复
-- **入口架构**：侧栏「记录与规划」一个导航项，内部 tab 切 待办 / 日程 / 备忘录 / 规划；首页四卡跳该入口并定位 tab
+- 实做路由：`/api/health`、`/api/auth/login`、`/api/auth/logout`、`/api/features`、`/api/todos/*`、`/api/events/*`、`/api/habits/*`、`/api/checkins/*`
+- **一期 A2 待办 / A3 日程 / A4 打卡已实做**：存 `items` 表（`type=todo` / `event` / `habit` / `checkin`），增删改查 + 软删除/回收站恢复
+- **入口架构**：侧栏「记录与规划」一个导航项，内部五 tab 切 待办 / 日程 / 打卡 / 备忘录 / 规划；首页五卡跳该入口并定位 tab
 - 简约 UI：右侧栏 + 点击切页 + 首页仪表盘（备忘录/规划占位）
 - 模块注册表 `features.ts`（按 v0.6 分期）+ 数据源适配器接口 + `MODULES.md`
-- API 探针脚本 `scripts/probe-api.mjs`（开工第一步）
+- API 探针脚本 `scripts/probe-api.mjs`（开工第一步，已实测通过）
 
-**所有用户可见功能均未实现**，按需求清单分期、逐个走「功能澄清门」补实。
+**用户可见功能按需求清单分期、逐个走「功能澄清门」补实**；尚未实现的一律占位或空状态。
 模块状态见 [MODULES.md](./MODULES.md)，分期与顺序见 [PROJECT_PLAN.md](./PROJECT_PLAN.md)。
 
 > 历史说明：初版曾按 Atlas v2 做过「op 同步闭环 / 移动端轻视图」，与 v0.6 需求不符，
@@ -70,11 +70,13 @@ node scripts/probe-api.mjs
 服务启动后跑：
 
 ```bash
-node scripts/e2e-todos.mjs    # 待办 15 项
-node scripts/e2e-events.mjs   # 日程 15 项
+node scripts/e2e-todos.mjs     # 待办 15 项
+node scripts/e2e-events.mjs    # 日程 15 项
+node scripts/e2e-checkins.mjs  # 打卡 25 项
 ```
 
-覆盖未登录 401 / 新增 / 字段回读 / 完成切换或日期分组 / 筛选 / 编辑 / 软删除 / 回收站 / 恢复 / 参数校验。
+覆盖未登录 401 / 新增 / 字段回读 / 完成切换或日期分组或连续天数 / 筛选 / 编辑 /
+软删除 / 回收站 / 恢复 / 参数校验。
 
 ## 配置（v0.6）
 

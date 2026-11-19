@@ -20,7 +20,8 @@
 | API 探针 | placeholder | false | `scripts/probe-api.mjs` | 开工第一步，已实测 5/5 过；model id 纠正为 deepseek-flash |
 | 待办（网站自建主库 CRUD） | implemented | true | `src/lib/todos.ts`、`src/app/api/todos/*`、`src/components/TodoView.tsx` | A2 已实做：标题/截止/标签/备注 + 完成切换 + 筛选 + 软删除/恢复；`items` 表 `type=todo`，无新增表；e2e 15/15 过 |
 | 日程（按日期分组） | implemented | true | `src/lib/events.ts`、`src/app/api/events/*`、`src/components/EventView.tsx` | A3 已实做：标题/日期/起止时间/地点/备注/标签 + 今天/明天/本周/更远/已过去分组 + 软删除/恢复；`items` 表 `type=event`；e2e 15/15 过 |
-| 首页仪表盘（备忘录 / 长期目标） | placeholder | false | `src/components/AppShell.tsx`（骨架卡） | **入口架构变更**：待办/日程/备忘录/规划收敛为侧栏「记录与规划」一个导航项 + 内部四 tab；首页四卡都跳该入口并定位对应 tab；备忘录/规划 tab 占位 |
+| 打卡（习惯 + 随手记 / 连续天数） | implemented | true | `src/lib/checkins.ts`、`src/app/api/habits/*`、`src/app/api/checkins/*`、`src/components/CheckinView.tsx` | A4 已实做：习惯定义+每日打卡(可补记)+随手记一条、同习惯同日幂等、连续天数(今天没打从昨天算)、习惯软删除保留记录；`items` 表 `type=habit`/`type=checkin`；e2e 25/25 过 |
+| 首页仪表盘（备忘录 / 长期目标） | placeholder | false | `src/components/AppShell.tsx`（骨架卡） | **入口架构**：侧栏「记录与规划」一个导航项 + 内部**五 tab**（待办/日程/打卡/备忘录/规划，用户确认）；首页五卡都跳该入口并定位对应 tab；备忘录/规划 tab 占位 |
 | AI 对话（管家+普通/三层记忆/检索工具/结构化输出） | placeholder | false | — | 一期先 DeepSeek；三层记忆映射 + function calling 查 .md 索引 |
 | 「记下来」按钮 | placeholder | false | — | 存网站主库 + `#source/网页AI`；绝不自动/批量 |
 
@@ -62,6 +63,9 @@
 
 ## 变更记录
 
+- 2026-11-19（一期 A4 打卡）：打卡实做（`items` 表 `type=habit`/`type=checkin`，连续天数、
+  幂等、补记、自由记录隔离、软删除保留记录）；新增「打卡」第五 tab + 首页补回打卡卡。
+  `scripts/e2e-checkins.mjs` 25/25 过，待办/日程回归各 15/15 过。
 - 2026-11-19（一期 A3 日程 + 入口重构）：日程实做（`items` 表 `type=event`，按日期分组，
   `scripts/e2e-events.mjs` 15/15 过）；入口按用户确认收敛为「记录与规划」单一导航项 + 四个 tab，
   待办并入 tab（复用 TodoView）。修复时间字段空值校验。待办 e2e 回归 15/15 过。

@@ -62,12 +62,20 @@ export const features: FeatureModule[] = [
     note: "A3 已实做：标题/日期/起止时间/地点/备注/标签 + 今天/明天/本周/更远/已过去分组 + 软删除/恢复；items 表 type=event",
   },
   {
+    id: "checkins",
+    name: "打卡（习惯 + 随手记 / 连续天数）",
+    enabled: true,
+    status: "implemented",
+    phase: "一期",
+    note: "A4 已实做：习惯定义+每日打卡(可补记)+随手记一条、同习惯同日幂等、连续天数(今天没打从昨天算)、软删除保留记录；items 表 type=habit/checkin",
+  },
+  {
     id: "dashboard",
     name: "首页仪表盘（备忘录 / 长期目标）",
     enabled: false,
     status: "placeholder",
     phase: "一期",
-    note: "待办/日程已实做；入口已收敛为「记录与规划」单一导航项 + 四个 tab（用户确认）；长期目标存本地配置手填",
+    note: "待办/日程/打卡已实做；入口为「记录与规划」单一导航项 + 五个 tab（用户确认）；长期目标存本地配置手填",
   },
   {
     id: "ai-chat",

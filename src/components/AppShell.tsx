@@ -3,8 +3,8 @@
 /**
  * 应用外壳（v0.6 · 入口重构）
  * - 侧边栏在右；点击侧栏切页（非单页滚动）——清单第七节
- * - 「记录与规划」一个导航项，内部 tab 切 待办/日程/备忘录/规划（用户 2026-11-19 确认）
- * - 首页四张卡片都点进该入口并定位对应 tab
+ * - 「记录与规划」一个导航项，内部 tab 切 待办/日程/打卡/备忘录/规划（用户 2026-11-19 确认）
+ * - 首页卡片都点进该入口并定位对应 tab
  * - 一期只做电脑端；未登录跳 /login
  */
 import { useEffect, useState } from "react";
@@ -13,10 +13,11 @@ import PlaceholderButton from "./PlaceholderButton";
 import EmptyState from "./EmptyState";
 import TodoView from "./TodoView";
 import EventView from "./EventView";
+import CheckinView from "./CheckinView";
 import type { FeatureModule } from "@/features";
 
 type Page = "home" | "records" | "assistant" | "knowledge" | "settings";
-type RecordTab = "todo" | "event" | "memo" | "goal";
+type RecordTab = "todo" | "event" | "checkin" | "memo" | "goal";
 
 const NAV: { key: Page; label: string; phase: string }[] = [
   { key: "home", label: "首页", phase: "一期" },
@@ -29,6 +30,7 @@ const NAV: { key: Page; label: string; phase: string }[] = [
 const RECORD_TABS: { key: RecordTab; label: string }[] = [
   { key: "todo", label: "待办" },
   { key: "event", label: "日程" },
+  { key: "checkin", label: "打卡" },
   { key: "memo", label: "备忘录" },
   { key: "goal", label: "规划" },
 ];
@@ -131,6 +133,7 @@ function RecordsPage({ tab, setTab }: { tab: RecordTab; setTab: (t: RecordTab) =
       <div className="record-panel">
         {tab === "todo" && <TodoView />}
         {tab === "event" && <EventView />}
+        {tab === "checkin" && <CheckinView />}
         {tab === "memo" && (
           <SimplePage title="备忘录" desc="随手记的碎片与备忘（待实现）" />
         )}
@@ -147,6 +150,7 @@ function HomeDashboard({ onOpen }: { onOpen: (tab: RecordTab) => void }) {
   const cards: { title: string; desc: string; tab: RecordTab; ready: boolean }[] = [
     { title: "待办", desc: "要做的事", tab: "todo", ready: true },
     { title: "日程", desc: "某个时间点要做的事", tab: "event", ready: true },
+    { title: "打卡", desc: "习惯与随手记", tab: "checkin", ready: true },
     { title: "备忘录", desc: "随手记的碎片", tab: "memo", ready: false },
     { title: "长期目标", desc: "本地配置手填", tab: "goal", ready: false },
   ];
@@ -169,7 +173,7 @@ function HomeDashboard({ onOpen }: { onOpen: (tab: RecordTab) => void }) {
         ))}
       </div>
       <div className="panel home-tip">
-        <EmptyState text="待办 / 日程已实做；其余功能按你定的顺序逐个实现（每个都先走澄清门）。" />
+        <EmptyState text="待办 / 日程 / 打卡已实做；其余功能按你定的顺序逐个实现（每个都先走澄清门）。" />
       </div>
     </section>
   );
