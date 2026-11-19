@@ -11,6 +11,8 @@ build/
 
 # 本地主库与运行时数据（铁律 8：绝不放进任何文件同步工具 / Git）
 data/
+# e2e 数据清理前的本地备份（仅本地留存，绝不进 Git）
+data.e2e-backup-*/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal

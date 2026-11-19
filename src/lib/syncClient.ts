@@ -40,9 +40,16 @@ async function jsonFetch<T>(url: string, init?: RequestInit): Promise<JsonResult
     try {
       data = (await res.json()) as T;
     } catch {
-      // 无 body 的响应
+      // 无 body 的响应（如 500 返回 HTML）
     }
-    return { ok: res.ok, status: res.status, data, error: res.ok ? undefined : "请求失败" };
+    if (res.ok) return { ok: true, status: res.status, data };
+    // 透传服务端 error 字段 + 状态码，避免只显示笼统的「请求失败」难以排障
+    const serverError =
+      data && typeof data === "object" && "error" in data
+        ? String((data as { error: unknown }).error)
+        : undefined;
+    const detail = serverError ? `请求失败(${res.status})：${serverError}` : `请求失败(${res.status})`;
+    return { ok: false, status: res.status, data, error: detail };
   } catch {
     return { ok: false, status: 0, error: "网络不可用" };
   }
