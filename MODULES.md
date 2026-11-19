@@ -1,38 +1,66 @@
 # Fold_归匣 · 模块清单（MODULES.md）
 
-> 模块状态唯一权威源：`src/features.ts`（`GET /api/features` 直接读取）。
-> 每次扩展（新功能 / 新数据源）后必须更新本文件与 features.ts，保持一致。
-> 状态：`implemented` 已实做 ｜ `placeholder` 方向已敲定、占位 ｜ `pending_clarify` 细节待澄清、留空
+> 需求权威源：`个人AI枢纽网站_需求对齐清单_v0.6.md`（定稿，纯需求）
+> 模块状态权威源：`src/features.ts`（`GET /api/features` 直接读取），本文件与之保持一致。
+> 状态：`implemented` 已实做 ｜ `placeholder` 方向已定、占位 ｜ `pending_clarify` 细节待澄清、留空
+> 分期见 [PROJECT_PLAN.md](./PROJECT_PLAN.md)。
 
-| 模块 | 状态 | enabled | 代码位置 | 阶段 0 动作 / 待澄清项 |
+## 骨架（已实做）
+
+| 模块 | 状态 | enabled | 代码位置 | 说明 |
 |---|---|---|---|---|
-| 项目框架 / 建表 / 鉴权 / 配置 / PWA 壳 | implemented | true | `src/lib/*`、`db/schema.sql`、`public/` | 实做 |
-| 简约 UI 基底 + 空状态 | implemented | true | `src/app/globals.css`、`src/components/*` | 实做 |
-| 模块开关 / 适配器接口 / MODULES.md | implemented | true | `src/features.ts`、`src/adapters/` | 实做骨架 |
-| op 同步闭环 / 审批台 / 快照 / 审计 | implemented | true | `src/lib/sync.ts`、`api/sync/*`、`api/ops/*`、`src/lib/localDb.ts`、`src/lib/syncClient.ts`、`InboxView`、`ApproveView` | 阶段 1 实装（2026-11-19 规格确认：自动同步+手动兜底、人工批 create、行级 JSON 快照、冲突快捷按钮、批量批准） |
-| 统一收件箱 + LLM 分类路由 | placeholder | false | `src/app/api/capture/` | 占位；分类枚举等细节不提前写死；轻视图「记一条」固定 note 已随阶段 1 落地 |
-| AI 对话 + 记忆分层 | placeholder | false | `src/app/api/ai/chat/` | 占位；模型/预算/记忆沉淀细节待澄清 |
-| 对话「存为笔记」按钮 | placeholder | false | `src/app/api/ai/save-answer/` | 占位；已敲定（提示词 9.1），实现前仍先问一次 |
-| 每日推送 / 任务到期提醒 | pending_clarify | false | `src/lib/cron.ts`（空调度占位） | 留空占位 |
-| 周报草稿 / 人工批准发布 / 反思建议 | pending_clarify | false | `src/app/api/weekly-report/*` | 留空占位；细节待澄清 |
-| 日记随笔 / 笔记管理 | pending_clarify | false | — | 留空占位 |
-| Obsidian「整理新笔记」按钮 | pending_clarify | false | `src/app/api/obsidian/tidy/` | 留空占位；松耦合（提示词 9.2），判定口径等待澄清 |
-| 收支统计 / 账单导入 | pending_clarify | false | — | 留空占位 |
-| RSS / 资讯聚合 | pending_clarify | false | — | 留空占位 |
-| 手写笔记 OCR | pending_clarify | false | — | 留空占位 |
-| Outlook 日历 / 邮件 | pending_clarify | false | 适配器位置预留（`owner_adapter: outlook`） | 留空占位 |
-| 微信 / QQ 内容转发接收 | pending_clarify | false | 适配器位置预留（`owner_adapter: wechat-qq`） | 不做群消息自动接入 |
-| 目标看板 / 进度汇总 | pending_clarify | false | — | 留空占位 |
+| 项目框架 / 建表 / 鉴权 / 配置 / PWA 壳 | implemented | true | `src/lib/*`、`db/schema.sql`、`public/` | 4 张表；登录 HMAC Cookie + Bearer |
+| 简约 UI 基底（右侧栏 / 点击切页 / 空状态） | implemented | true | `src/app/globals.css`、`src/components/AppShell.tsx` | 清单第七节：侧栏在右、点击切页 |
+| 模块开关 / 适配器接口 / MODULES.md | implemented | true | `src/features.ts`、`src/adapters/` | 扩展点机制 |
+
+## 一期
+
+| 模块 | 状态 | enabled | 代码位置 | 待澄清 / 说明 |
+|---|---|---|---|---|
+| API 探针 | placeholder | false | `scripts/probe-api.mjs` | 开工第一步；验证 model id / 结构化输出 / function calling |
+| 首页仪表盘（待办/日程/打卡/长期目标） | placeholder | false | `src/components/AppShell.tsx`（骨架卡） | 数据网站自建主库；长期目标存本地配置手填 |
+| AI 对话（管家+普通/三层记忆/检索工具/结构化输出） | placeholder | false | — | 一期先 DeepSeek；三层记忆映射 + function calling 查 .md 索引 |
+| 「记下来」按钮 | placeholder | false | — | 存网站主库 + `#source/网页AI`；绝不自动/批量 |
+
+## 二期
+
+| 模块 | 状态 | enabled | 说明 |
+|---|---|---|---|
+| 知识库 / 项目库 + 文件浏览器 + `obsidian://` 跳转 | pending_clarify | false | 项目进度读 `STATUS.md`；不做 OCR |
+| 暂存区整理（git）+ Obsidian「整理新笔记」按钮 | pending_clarify | false | 一次整理一次提交；Obsidian 松耦合、审批后执行可逆操作 |
+
+## 三期
+
+| 模块 | 状态 | enabled | 说明 |
+|---|---|---|---|
+| 定时任务 + 审批闸门 + 站内消息 | pending_clarify | false | 常驻后台、错过不补跑；提案→批准才执行（限打标签/移动/重命名） |
+| 周报草稿 + 数据源开关面板 | pending_clarify | false | 模板骨架 + 程序填数 + AI 评述 |
+| 资讯订阅（Qwen 内置联网） | pending_clarify | false | 一期不做 RSS；资讯只走 Qwen |
+| GLM / Qwen 接入（三模型路由补齐） | pending_clarify | false | 二/三期验证后插 |
+
+## 四期
+
+| 模块 | 状态 | enabled | 说明 |
+|---|---|---|---|
+| 安卓浏览器兼容 | pending_clarify | false | Tailscale/局域网 + 认证；一期只电脑端；鸿蒙平板不做 |
+| 外部数据（Outlook / 本地目录） | pending_clarify | false | `owner_adapter: outlook`；微信/QQ 不做 |
+
+## 五期（🔮）
+
+| 模块 | 状态 | enabled | 说明 |
+|---|---|---|---|
+| 图片库（资源库，与知识库/项目库平级） | pending_clarify | false | 配置里可增删资源库类型 |
+| 收支统计（手动录入最简版） | pending_clarify | false | 自动获取支付宝/微信不可行 |
 
 ## 数据源适配器注册表（空）
 
 | adapter id | 名称 | 状态 |
 |---|---|---|
-| _（阶段 0 无任何真实适配器，接入前先走澄清门）_ | | |
+| _(阶段 0 无任何真实适配器，接入前先走澄清门)_ | | |
 
 ## 变更记录
 
-- 2026-11-19（阶段 1）：op 同步闭环实装并推送。规格 8 条经用户确认；
-  新增路由 `/api/ops/:op_id/resolve`（冲突解决）与 `/api/ops/batch-approve`（批量批准），
-  均属已确认规格第 6 条范围。
-- 2026-11-19：阶段 0 建立本清单，与 features.ts 初始状态一致。
+- 2026-11-19（v0.6 转向）：按需求清单 v0.6 重写。删除 Atlas v2 的 op 同步闭环 / 移动端轻视图 /
+  旧占位路由，仅保留最底层骨架；模块按清单第九节五期重分类。
+- 2026-11-19（阶段 1）：op 同步闭环实装并推送（已删除，见上）。
+- 2026-11-19：阶段 0 建立本清单。

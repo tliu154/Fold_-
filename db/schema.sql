@@ -1,73 +1,51 @@
 -- ============================================================
--- Fold_归匣 主库建表 SQL（阶段 0）
+-- Fold_归匣 主库建表 SQL（v0.6 骨架）
 -- 幂等：全部 IF NOT EXISTS，首次启动时由 src/lib/db.ts 自动执行
--- 铁律：主库只存在笔记本上；SQLite 数据文件绝不放进任何文件同步工具
+-- 网站自建主库：待办/日程/打卡/笔记等都是网站自己的数据，不依赖 Obsidian
+-- 铁律：SQLite 数据文件绝不放进任何 Git / 文件同步工具
 -- 后续新增功能优先复用 items.payload；新增表必须先经用户批准
 -- ============================================================
 
+-- 统一条目表：待办 / 日程 / 打卡 / 笔记 / 对话存下来的内容都进这里，靠 type + payload 扩展
 CREATE TABLE IF NOT EXISTS items (
   id            TEXT PRIMARY KEY,
-  type          TEXT NOT NULL,   -- note|idea|task|diary|expense|event|feed|goal（可扩展）
+  type          TEXT NOT NULL,   -- todo|event|checkin|note|idea|diary|goal ...（可扩展，不写死枚举）
   title         TEXT,
-  content       TEXT,            -- Markdown 正文
-  payload       TEXT,            -- JSON：due_at / amount / tags / source / attachments / status ...
+  content       TEXT,            -- Markdown 正文（网站对自有数据不改正文）
+  payload       TEXT,            -- JSON：due_at / tags / source / status / date ...
   version       INTEGER NOT NULL DEFAULT 1,
-  origin_device TEXT,
+  origin_device TEXT,            -- 预留：四期安卓浏览器来源标记（一期不使用）
   created_at    TEXT NOT NULL,
   updated_at    TEXT NOT NULL,
-  deleted_at    TEXT             -- 软删除墓碑，90 天后归档清理
+  deleted_at    TEXT             -- 软删除墓碑
 );
 
-CREATE TABLE IF NOT EXISTS pending_ops (
-  op_id         TEXT PRIMARY KEY,   -- 幂等键
-  device_id     TEXT NOT NULL,
-  type          TEXT NOT NULL,      -- create|update|delete|tag|complete|expense_add
-  target_id     TEXT,
-  item_type     TEXT,
-  payload       TEXT,              -- JSON
-  base_version  INTEGER,           -- 移动端基于哪个主库版本做的修改
-  client_seq    INTEGER,
-  status        TEXT DEFAULT 'pending',  -- pending|approved|rejected|conflict|duplicate
-  reject_reason TEXT,
-  created_at    TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS applied_ops (
-  op_id         TEXT PRIMARY KEY,
-  applied_at    TEXT NOT NULL,
-  snapshot_path TEXT NOT NULL,     -- 应用前快照，回滚依据
-  before_hash   TEXT,
-  after_hash    TEXT
-);
-
-CREATE TABLE IF NOT EXISTS snapshots (
-  id          TEXT PRIMARY KEY,
-  created_at  TEXT NOT NULL,
-  path        TEXT NOT NULL,
-  reason      TEXT,               -- pre_apply|hourly|manual|weekly_backup
-  description TEXT
-);
-
+-- 三层记忆：基础身份(profile) / 功能记忆(feature:<name>) / 事实(fact) / 项目(project:<name>) / 临时(session)
 CREATE TABLE IF NOT EXISTS memory (
-  scope      TEXT NOT NULL,        -- profile|fact|project:<name>|session
+  scope      TEXT NOT NULL,
   key        TEXT NOT NULL,
-  value      TEXT NOT NULL,        -- JSON
+  value      TEXT NOT NULL,      -- JSON
   updated_at TEXT NOT NULL,
-  expires_at TEXT,
+  expires_at TEXT,               -- 临时上下文过期时间
   PRIMARY KEY (scope, key)
 );
 
+-- AI 对话消息（一期：管家 + 普通对话；「记下来」由此落 items 并回填 saved_as_item_id）
 CREATE TABLE IF NOT EXISTS ai_messages (
-  id         TEXT PRIMARY KEY,
-  session_id TEXT,
-  role       TEXT,                 -- user|assistant|system
-  content    TEXT,
-  saved_as_item_id TEXT,           -- 仅由「存为笔记」按钮点击后回填
-  created_at TEXT NOT NULL
+  id               TEXT PRIMARY KEY,
+  session_id       TEXT,
+  role             TEXT,         -- user|assistant|system
+  content          TEXT,
+  saved_as_item_id TEXT,         -- 仅由「记下来」按钮点击后回填（绝不自动）
+  created_at       TEXT NOT NULL
 );
 
+-- AI 用量与成本（清单 10：ai_usage 记录每次调用，月度预算与限流）
 CREATE TABLE IF NOT EXISTS ai_usage (
   id         TEXT PRIMARY KEY,
-  model      TEXT, tokens_in INTEGER, tokens_out INTEGER,
-  cost_est   REAL, created_at TEXT NOT NULL
+  model      TEXT,
+  tokens_in  INTEGER,
+  tokens_out INTEGER,
+  cost_est   REAL,
+  created_at TEXT NOT NULL
 );
