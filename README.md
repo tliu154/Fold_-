@@ -9,8 +9,9 @@
 已保留的底层骨架：
 - Next.js 15 + TypeScript + better-sqlite3 + zod，PWA 壳
 - 建表（4 张：items / memory / ai_messages / ai_usage）、登录鉴权（HMAC Cookie + Bearer）
-- 实做路由：`/api/health`、`/api/auth/login`、`/api/auth/logout`、`/api/features`
-- 简约 UI：右侧栏 + 点击切页 + 首页仪表盘骨架（待办 / 日程 / 打卡 / 长期目标占位）
+- 实做路由：`/api/health`、`/api/auth/login`、`/api/auth/logout`、`/api/features`、`/api/todos/*`
+- **一期 A2 待办已实做**：独立待办页（新增/勾选完成/编辑/软删除/恢复/筛选），存 `items` 表 `type=todo`
+- 简约 UI：右侧栏 + 点击切页 + 首页仪表盘（待办可点进，其余占位）
 - 模块注册表 `features.ts`（按 v0.6 分期）+ 数据源适配器接口 + `MODULES.md`
 - API 探针脚本 `scripts/probe-api.mjs`（开工第一步）
 
@@ -60,8 +61,13 @@ npm run dev
 node scripts/probe-api.mjs
 ```
 
-> 清单里的型号名是核实快照，不能直接当配置；以探针实测结果为准。
+> 清单里的型号名是核实快照，不能直接当配置；以探针实测结果为准（真实可用 `deepseek-flash` / `deepseek-v4-pro`）。
 > API key 只从 `.env` 读取，绝不进代码 / Git / 前端。
+
+## 待办验收（一期 A2）
+
+服务启动后跑 `node scripts/e2e-todos.mjs`，覆盖未登录 401 / 新增 / 完成切换 / 筛选 /
+编辑 / 软删除 / 回收站 / 恢复 / 参数校验（15 项）。
 
 ## 配置（v0.6）
 

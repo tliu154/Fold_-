@@ -46,12 +46,20 @@ export const features: FeatureModule[] = [
 
   // ---- 一期 ----
   {
+    id: "todos",
+    name: "待办（网站自建主库 CRUD）",
+    enabled: true,
+    status: "implemented",
+    phase: "一期",
+    note: "A2 已实做：标准四字段 + 完成切换 + 筛选 + 软删除/恢复；items 表 type=todo",
+  },
+  {
     id: "dashboard",
-    name: "首页仪表盘（待办 / 日程 / 打卡 / 长期目标）",
+    name: "首页仪表盘（日程 / 打卡 / 长期目标）",
     enabled: false,
     status: "placeholder",
     phase: "一期",
-    note: "数据网站自建主库；长期目标存本地配置手填",
+    note: "待办卡已可点击进入；其余卡片骨架占位；长期目标存本地配置手填",
   },
   {
     id: "ai-chat",

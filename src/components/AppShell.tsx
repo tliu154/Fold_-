@@ -11,12 +11,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PlaceholderButton from "./PlaceholderButton";
 import EmptyState from "./EmptyState";
+import TodoView from "./TodoView";
 import type { FeatureModule } from "@/features";
 
-type Page = "home" | "assistant" | "schedule" | "knowledge" | "settings";
+type Page = "home" | "todo" | "assistant" | "schedule" | "knowledge" | "settings";
 
 const NAV: { key: Page; label: string; phase: string }[] = [
   { key: "home", label: "首页", phase: "一期" },
+  { key: "todo", label: "待办", phase: "一期" },
   { key: "assistant", label: "AI 管家", phase: "一期" },
   { key: "schedule", label: "日程 / 打卡", phase: "一期" },
   { key: "knowledge", label: "知识库", phase: "二期" },
@@ -51,7 +53,8 @@ export default function AppShell() {
     <div className="shell">
       <main className="main">
         <div className="main-inner">
-          {page === "home" && <HomeDashboard />}
+          {page === "home" && <HomeDashboard onOpenTodo={() => setPage("todo")} />}
+          {page === "todo" && <TodoView />}
           {page === "assistant" && (
             <SimplePage title="AI 管家" desc="管家问答 + 普通对话 + 三层记忆 + 检索工具（一期）" />
           )}
@@ -96,29 +99,35 @@ export default function AppShell() {
   );
 }
 
-/** 首页仪表盘骨架（待办 / 日程 / 打卡 / 长期目标） */
-function HomeDashboard() {
+/** 首页仪表盘（待办已实做，其余骨架占位） */
+function HomeDashboard({ onOpenTodo }: { onOpenTodo: () => void }) {
   const cards = [
-    { title: "待办", desc: "网站自建主库", hint: "一期实现" },
-    { title: "日程", desc: "网站自建主库", hint: "一期实现" },
-    { title: "打卡", desc: "网站自建主库", hint: "一期实现" },
-    { title: "长期目标", desc: "本地配置手填", hint: "一期实现" },
+    { title: "待办", desc: "网站自建主库", hint: "点击进入 →", ready: true },
+    { title: "日程", desc: "网站自建主库", hint: "一期实现", ready: false },
+    { title: "打卡", desc: "网站自建主库", hint: "一期实现", ready: false },
+    { title: "长期目标", desc: "本地配置手填", hint: "一期实现", ready: false },
   ];
   return (
     <section>
       <h1 className="view-title">首页</h1>
-      <p className="view-desc">整合 + 调度 + 自动化的个人指挥台。当前为骨架，功能按清单分期实现。</p>
+      <p className="view-desc">整合 + 调度 + 自动化的个人指挥台。功能按清单分期实现。</p>
       <div className="dash-grid">
         {cards.map((c) => (
-          <div key={c.title} className="panel dash-card">
+          <button
+            key={c.title}
+            type="button"
+            className={`panel dash-card ${c.ready ? "dash-card-ready" : ""}`}
+            onClick={c.ready ? onOpenTodo : undefined}
+            disabled={!c.ready}
+          >
             <div className="dash-card-title">{c.title}</div>
             <div className="muted">{c.desc}</div>
             <div className="dash-card-hint">{c.hint}</div>
-          </div>
+          </button>
         ))}
       </div>
       <div className="panel home-tip">
-        <EmptyState text="骨架已就绪。开工第一步：API 探针（验证 DeepSeek 连通），随后按你定的顺序实现一期功能。" />
+        <EmptyState text="待办已实做；其余功能按你定的顺序逐个实现（每个都先走澄清门）。" />
       </div>
     </section>
   );

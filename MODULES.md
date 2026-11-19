@@ -17,8 +17,9 @@
 
 | 模块 | 状态 | enabled | 代码位置 | 待澄清 / 说明 |
 |---|---|---|---|---|
-| API 探针 | placeholder | false | `scripts/probe-api.mjs` | 开工第一步；验证 model id / 结构化输出 / function calling |
-| 首页仪表盘（待办/日程/打卡/长期目标） | placeholder | false | `src/components/AppShell.tsx`（骨架卡） | 数据网站自建主库；长期目标存本地配置手填 |
+| API 探针 | placeholder | false | `scripts/probe-api.mjs` | 开工第一步，已实测 5/5 过；model id 纠正为 deepseek-flash |
+| 待办（网站自建主库 CRUD） | implemented | true | `src/lib/todos.ts`、`src/app/api/todos/*`、`src/components/TodoView.tsx` | A2 已实做：标题/截止/标签/备注 + 完成切换 + 筛选 + 软删除/恢复；`items` 表 `type=todo`，无新增表；e2e 15/15 过 |
+| 首页仪表盘（日程/打卡/长期目标） | placeholder | false | `src/components/AppShell.tsx`（骨架卡） | 待办卡已可点击进入；其余骨架占位；长期目标存本地配置手填 |
 | AI 对话（管家+普通/三层记忆/检索工具/结构化输出） | placeholder | false | — | 一期先 DeepSeek；三层记忆映射 + function calling 查 .md 索引 |
 | 「记下来」按钮 | placeholder | false | — | 存网站主库 + `#source/网页AI`；绝不自动/批量 |
 
@@ -60,6 +61,8 @@
 
 ## 变更记录
 
+- 2026-11-19（一期 A2 待办）：待办实做并推送。`items` 表 `type=todo`（标准四字段 + 完成态），
+  `scripts/e2e-todos.mjs` 15 项断言全过。features.ts 新增 `todos` 模块（implemented）。
 - 2026-11-19（v0.6 转向）：按需求清单 v0.6 重写。删除 Atlas v2 的 op 同步闭环 / 移动端轻视图 /
   旧占位路由，仅保留最底层骨架；模块按清单第九节五期重分类。
 - 2026-11-19（阶段 1）：op 同步闭环实装并推送（已删除，见上）。

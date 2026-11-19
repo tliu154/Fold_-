@@ -387,6 +387,178 @@ button {
   text-align: center;
 }
 
+/* ---------- 首页仪表盘卡片（可点击） ---------- */
+
+.dash-card {
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: default;
+}
+
+.dash-card-ready {
+  cursor: pointer;
+}
+
+.dash-card-ready:hover {
+  border-color: var(--accent);
+}
+
+.dash-card:disabled {
+  opacity: 1;
+}
+
+/* ---------- 待办（一期 A2） ---------- */
+
+.todo-form {
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.todo-form-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.todo-form-detail {
+  margin-top: 8px;
+}
+
+.todo-form-detail .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-error {
+  color: #a32d2d;
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+
+.todo-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.seg-btn {
+  padding: 6px 14px;
+  border: none;
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.seg-btn + .seg-btn {
+  border-left: 1px solid var(--border);
+}
+
+.seg-btn.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 500;
+}
+
+.todo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.todo-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.todo-row.done .todo-title {
+  text-decoration: line-through;
+  color: var(--fg-muted);
+}
+
+.todo-check {
+  margin-top: 4px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.todo-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.todo-title {
+  font-size: 15px;
+}
+
+.todo-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.todo-due {
+  font-size: 12px;
+}
+
+.todo-note {
+  font-size: 12px;
+  color: var(--fg-muted);
+  flex-basis: 100%;
+}
+
+.todo-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.todo-edit form {
+  width: 100%;
+}
+
+.todo-edit .input {
+  width: 100%;
+}
+
+.todo-edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.trash-box {
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.trash-row {
+  align-items: center;
+}
+
 @media (max-width: 720px) {
   .shell {
     flex-direction: column;
@@ -411,5 +583,9 @@ button {
   }
   .dash-grid {
     grid-template-columns: 1fr;
+  }
+  .todo-form-detail {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
