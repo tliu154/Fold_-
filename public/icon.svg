@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fold_归匣 图标：一个归档匣，盖子折线代表「折叠」 -->
+  <rect width="512" height="512" rx="96" fill="#2c5f5d"/>
+  <path d="M128 176 L256 248 L384 176" stroke="#ffffff" stroke-width="28" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="128" y="248" width="256" height="104" rx="18" fill="none" stroke="#ffffff" stroke-width="28"/>
+</svg>

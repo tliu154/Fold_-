@@ -1,0 +1,29 @@
+# 依赖与构建产物
+node_modules/
+.next/
+out/
+build/
+
+# 环境变量与密钥（绝不进 Git）
+.env
+.env.local
+.env.*.local
+
+# 本地主库与运行时数据（铁律 8：绝不放进任何文件同步工具 / Git）
+data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db-journal
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
+
+# Next 生成文件
+next-env.d.ts
+.vercel

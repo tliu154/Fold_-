@@ -1,0 +1,18 @@
+{
+  "name": "Fold_归匣",
+  "short_name": "归匣",
+  "description": "Local-First 个人中枢平台",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#2c5f5d",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
