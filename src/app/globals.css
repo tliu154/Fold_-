@@ -276,34 +276,7 @@ button {
   margin: 0 0 24px;
 }
 
-/* 首页仪表盘卡片 */
-.dash-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.dash-card {
-  padding: 20px;
-  min-height: 120px;
-}
-
-.dash-card-title {
-  font-size: 16px;
-  font-weight: 500;
-  margin-bottom: 6px;
-}
-
-.dash-card-hint {
-  margin-top: 12px;
-  font-size: 12px;
-  color: var(--accent);
-}
-
-.home-tip {
-  padding: 8px 16px;
-}
+/* 首页改版后卡片样式已移除，改用 .home-section 分区 */
 
 .page-placeholder,
 .settings-block {
@@ -385,27 +358,6 @@ button {
   color: var(--fg-muted);
   font-size: 12px;
   text-align: center;
-}
-
-/* ---------- 首页仪表盘卡片（可点击） ---------- */
-
-.dash-card {
-  text-align: left;
-  font: inherit;
-  color: inherit;
-  cursor: default;
-}
-
-.dash-card-ready {
-  cursor: pointer;
-}
-
-.dash-card-ready:hover {
-  border-color: var(--accent);
-}
-
-.dash-card:disabled {
-  opacity: 1;
 }
 
 /* ---------- 待办（一期 A2） ---------- */
@@ -732,6 +684,7 @@ button {
 }
 
 .goal-progress-fill {
+  display: block;
   height: 100%;
   background: var(--accent);
   border-radius: 999px;
@@ -896,6 +849,242 @@ button {
   }
 }
 
+/* ---------- 首页分区（一期首页改版） ---------- */
+
+.home-section {
+  margin-bottom: 20px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.home-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.home-section-title {
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.home-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-all {
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+}
+
+.home-all:hover {
+  color: var(--accent);
+}
+
+.home-add {
+  width: 26px;
+  height: 26px;
+  line-height: 1;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.home-add:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.home-section-body {
+  padding: 8px 18px 14px;
+}
+
+.home-sub-label {
+  font-size: 12px;
+  margin: 10px 0 4px;
+}
+
+.home-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 9px 0;
+}
+
+.home-item:last-child {
+  border-bottom: none;
+}
+
+.home-item:hover .home-item-title {
+  color: var(--accent);
+}
+
+.home-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.home-item-title {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-item-title.done {
+  text-decoration: line-through;
+  color: var(--fg-muted);
+}
+
+.home-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.home-item-meta .tag {
+  font-size: 11px;
+  padding: 1px 6px;
+}
+
+.home-item-edit {
+  opacity: 0;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.home-item:hover .home-item-edit {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.home-progress {
+  max-width: 180px;
+  margin-top: 4px;
+}
+
+/* ---------- 模态框 ---------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+}
+
+.modal {
+  width: 100%;
+  max-width: 460px;
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.modal-close {
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.modal-close:hover {
+  color: var(--fg);
+}
+
+.modal-tabs {
+  display: flex;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.modal-tabs .seg-btn {
+  flex: 1;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.modal-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn-danger {
+  color: #a32d2d;
+  border-color: #d9a5a5;
+}
+
+.btn-danger:hover {
+  border-color: #a32d2d;
+  color: #a32d2d;
+}
+
 @media (max-width: 720px) {
   .checkin-forms,
   .habit-grid {
@@ -924,9 +1113,6 @@ button {
   }
   .side-foot {
     margin-top: 12px;
-  }
-  .dash-grid {
-    grid-template-columns: 1fr;
   }
   .todo-form-detail {
     flex-direction: column;

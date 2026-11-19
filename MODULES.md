@@ -11,6 +11,7 @@
 |---|---|---|---|---|
 | 项目框架 / 建表 / 鉴权 / 配置 / PWA 壳 | implemented | true | `src/lib/*`、`db/schema.sql`、`public/` | 4 张表；登录 HMAC Cookie + Bearer |
 | 简约 UI 基底（右侧栏 / 点击切页 / 空状态） | implemented | true | `src/app/globals.css`、`src/components/AppShell.tsx` | 清单第七节：侧栏在右、点击切页 |
+| 首页分区视图（就地新增 / 编辑 / 删除） | implemented | true | `src/components/HomeDashboard.tsx`、`src/components/Modal.tsx` | 用户要求改版：单列从上到下 5 分区、垂直滚动、每区最多 5 条 + 查看全部跳 tab；+ 号弹框新增、点条目编辑带删除；打卡弹框内两 tab；侧栏「记录与规划」保留不动；`e2e-home.mjs` 25/25 过 |
 | 模块开关 / 适配器接口 / MODULES.md | implemented | true | `src/features.ts`、`src/adapters/` | 扩展点机制 |
 
 ## 一期
@@ -64,6 +65,11 @@
 
 ## 变更记录
 
+- 2026-11-19（首页 UI 改版，插队于 A7 之前）：首页从「卡片跳 tab」改为单列从上到下
+  5 个实内容分区 + 垂直滚动 + 就地 + 号弹框编辑；新增 `HomeDashboard.tsx`/`Modal.tsx`；
+  补 `PATCH /api/checkins/[id]` 让随手记可编辑（仅自由记录，习惯打卡不可编辑）。
+  `scripts/e2e-home.mjs` 25/25 过；五套既有 e2e 回归 15/15、15/15、27/27、16/16、25/25 过。
+  **A7 三层记忆已过完澄清门但暂停**，等这次改版后再开工。
 - 2026-11-19（一期 A6 AI 对话基础）：实做普通对话两模式 + 多会话，DeepSeek-Flash 一次性返回；
   临时模式不落库；**不新增表**（会话壳用 memory、消息用 ai_messages）。侧栏新增「AI 对话」项，
   「AI 管家」保留占位。`scripts/e2e-chat.mjs` 25/25 过（含真实模型调用），

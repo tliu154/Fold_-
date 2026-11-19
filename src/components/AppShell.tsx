@@ -3,8 +3,9 @@
 /**
  * 应用外壳（v0.6 · 入口重构）
  * - 侧边栏在右；点击侧栏切页（非单页滚动）——清单第七节
- * - 「记录与规划」一个导航项，内部 tab 切 待办/日程/打卡/备忘录/规划（用户 2026-11-19 确认）
- * - 首页卡片都点进该入口并定位对应 tab
+ * - 「记录与规划」一个导航项，内部 tab 切 待办/日程/打卡/备忘录/长期目标（用户 2026-11-19 确认，保留）
+ * - 首页改版：单列从上到下多个实内容分区、垂直滚动、就地 + 号弹框编辑
+ * - 侧栏仍是点击切页；首页内部的「查看全部 →」跳到「记录与规划」对应 tab
  * - 一期只做电脑端；未登录跳 /login
  */
 import { useEffect, useState } from "react";
@@ -16,6 +17,7 @@ import EventView from "./EventView";
 import CheckinView from "./CheckinView";
 import GoalView from "./GoalView";
 import ChatView from "./ChatView";
+import HomeDashboard from "./HomeDashboard";
 import type { FeatureModule } from "@/features";
 
 type Page = "home" | "records" | "chat" | "assistant" | "knowledge" | "settings";
@@ -147,39 +149,6 @@ function RecordsPage({ tab, setTab }: { tab: RecordTab; setTab: (t: RecordTab) =
   );
 }
 
-/** 首页仪表盘（待办/日程/打卡/长期目标已实做，备忘录占位） */
-function HomeDashboard({ onOpen }: { onOpen: (tab: RecordTab) => void }) {
-  const cards: { title: string; desc: string; tab: RecordTab; ready: boolean }[] = [
-    { title: "待办", desc: "要做的事", tab: "todo", ready: true },
-    { title: "日程", desc: "某个时间点要做的事", tab: "event", ready: true },
-    { title: "打卡", desc: "习惯与随手记", tab: "checkin", ready: true },
-    { title: "备忘录", desc: "随手记的碎片", tab: "memo", ready: false },
-    { title: "长期目标", desc: "本地配置手填", tab: "goal", ready: true },
-  ];
-  return (
-    <section>
-      <h1 className="view-title">首页</h1>
-      <p className="view-desc">整合 + 调度 + 自动化的个人指挥台。功能按清单分期实现。</p>
-      <div className="dash-grid">
-        {cards.map((c) => (
-          <button
-            key={c.title}
-            type="button"
-            className={`panel dash-card ${c.ready ? "dash-card-ready" : ""}`}
-            onClick={() => onOpen(c.tab)}
-          >
-            <div className="dash-card-title">{c.title}</div>
-            <div className="muted">{c.desc}</div>
-            <div className="dash-card-hint">{c.ready ? "点击进入 →" : "待实现"}</div>
-          </button>
-        ))}
-      </div>
-      <div className="panel home-tip">
-        <EmptyState text="待办 / 日程 / 打卡 / 长期目标已实做；备忘录与 AI 功能按你定的顺序逐个实现（每个都先走澄清门）。" />
-      </div>
-    </section>
-  );
-}
 
 function SimplePage({ title, desc }: { title: string; desc: string }) {
   return (

@@ -86,6 +86,17 @@ async function main() {
   ok("自由记录 → 201 且 habit_id=null", free.status === 201 && free.data.checkin?.habit_id === null);
   const freeList = await api("/api/checkins");
   ok("自由记录出现在最近记录", freeList.data.checkins?.some((c) => c.id === free.data.checkin?.id));
+
+  // 首页改版新增：随手记记录可编辑（PATCH），习惯打卡记录不可编辑
+  const freeId = free.data.checkin?.id;
+  const freeEdited = await api(`/api/checkins/${freeId}`, {
+    method: "PATCH", body: JSON.stringify({ title: "e2e 随手记已编辑", date: y, note: "补充备注" }),
+  });
+  ok("随手记 PATCH → 200 字段更新", freeEdited.status === 200 && freeEdited.data.checkin?.title === "e2e 随手记已编辑" && freeEdited.data.checkin?.date === y && freeEdited.data.checkin?.note === "补充备注", JSON.stringify(freeEdited.data));
+  const habitCheckinEdit = await api(`/api/checkins/${checkinId}`, {
+    method: "PATCH", body: JSON.stringify({ title: "不该成功" }),
+  });
+  ok("习惯打卡记录不可编辑 → 404", habitCheckinEdit.status === 404, JSON.stringify(habitCheckinEdit.data));
   const vAfterFree = (await api("/api/habits")).data.habits?.find((h) => h.id === habitId);
   ok("自由记录不影响连续天数", vAfterFree?.streak === 3, JSON.stringify(vAfterFree));
 

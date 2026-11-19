@@ -37,6 +37,14 @@ export const features: FeatureModule[] = [
     note: "侧栏在右、点击切页（v0.6 第七节）",
   },
   {
+    id: "home-dashboard",
+    name: "首页分区视图（就地新增 / 编辑 / 删除）",
+    enabled: true,
+    status: "implemented",
+    phase: "骨架",
+    note: "用户 2026-11-19 要求：单列从上到下 5 分区、垂直滚动、每区最多 5 条 + 查看全部跳 tab；+ 号弹框新增、点条目编辑带删除；侧栏「记录与规划」保留不动",
+  },
+  {
     id: "module-registry",
     name: "模块开关 / 适配器接口 / MODULES.md",
     enabled: true,

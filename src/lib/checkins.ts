@@ -207,6 +207,39 @@ export function createCheckin(input: {
   return { checkin: rowToCheckin(row), created: true };
 }
 
+export interface CheckinPatch {
+  title?: string;
+  date?: string;
+  note?: string;
+}
+
+/**
+ * 编辑打卡记录（一期首页改版新增）。
+ * - 只改自由记录（habit_id=null）；习惯打卡记录不提供编辑（否则破坏同日幂等语义）
+ * - 同时更新 items.title 与 payload 中的 date/note
+ */
+export function updateCheckin(id: string, patch: CheckinPatch): Checkin | null {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM items WHERE id = ? AND type = 'checkin' AND deleted_at IS NULL").get(id) as
+    | ItemRow
+    | undefined;
+  if (!row) return null;
+  const cur = rowToCheckin(row);
+  if (cur.habit_id) return null;
+  const next: Checkin = {
+    ...cur,
+    title: patch.title ?? cur.title,
+    date: patch.date ?? cur.date,
+    note: patch.note ?? cur.note,
+  };
+  const payload: CheckinPayload = { date: next.date, habit_id: null, note: next.note };
+  db.prepare(
+    "UPDATE items SET title = ?, payload = ?, version = version + 1, updated_at = ? WHERE id = ?"
+  ).run(next.title, JSON.stringify(payload), nowIso(), id);
+  const updated = db.prepare("SELECT * FROM items WHERE id = ?").get(id) as ItemRow;
+  return rowToCheckin(updated);
+}
+
 /** 删除打卡记录（软删除） */
 export function softDeleteCheckin(id: string): boolean {
   const db = getDb();
