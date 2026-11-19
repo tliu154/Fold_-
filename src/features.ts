@@ -86,12 +86,20 @@ export const features: FeatureModule[] = [
     note: "待办/日程/打卡/长期目标已实做；入口为「记录与规划」单一导航项 + 五个 tab（用户确认）；备忘录 tab 仍占位",
   },
   {
+    id: "ai-chat-base",
+    name: "AI 对话基础（普通对话两模式 / 多会话）",
+    enabled: true,
+    status: "implemented",
+    phase: "一期",
+    note: "A6 已实做：DeepSeek-Flash 一次性返回、临时模式不落库、普通模式多会话+最近10轮上下文、会话壳存 memory 表不新增表；不做 SSE/记账/预算/AI限流；结构化输出仅预留能力",
+  },
+  {
     id: "ai-chat",
-    name: "AI 对话（管家 + 普通 / 三层记忆 / 检索工具 / 结构化输出）",
+    name: "三层记忆 / 检索工具 / 管家页 / 记下来",
     enabled: false,
     status: "placeholder",
     phase: "一期",
-    note: "一期先 DeepSeek 一家；三层记忆按功能映射、function calling 查 .md 实时索引",
+    note: "A7~A10 待做：三层记忆按功能映射、function calling 查 .md 实时索引、管家无状态问答、手动「记下来」",
   },
   {
     id: "save-note",

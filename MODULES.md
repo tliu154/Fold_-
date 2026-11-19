@@ -23,8 +23,8 @@
 | 打卡（习惯 + 随手记 / 连续天数） | implemented | true | `src/lib/checkins.ts`、`src/app/api/habits/*`、`src/app/api/checkins/*`、`src/components/CheckinView.tsx` | A4 已实做：习惯定义+每日打卡(可补记)+随手记一条、同习惯同日幂等、连续天数(今天没打从昨天算)、习惯软删除保留记录；`items` 表 `type=habit`/`type=checkin`；e2e 25/25 过 |
 | 长期目标（本地配置手填） | implemented | true | `src/lib/goals.ts`、`src/app/api/goals/*`、`src/components/GoalView.tsx` | A5 已实做：五项字段(标题/描述/目标日期/状态/进度手填)，存 `data/goals.json` **不进 SQLite 主库**（清单 P13）；独立不联动；删除直接移除；「规划」tab 改名「长期目标」；e2e 16/16 过 |
 | 首页仪表盘（备忘录占位） | placeholder | false | `src/components/AppShell.tsx`（骨架卡） | **入口架构**：侧栏「记录与规划」一个导航项 + 内部**五 tab**（待办/日程/打卡/备忘录/长期目标，用户确认）；首页五卡都跳该入口并定位对应 tab；仅备忘录 tab 仍占位 |
-| AI 对话（管家+普通/三层记忆/检索工具/结构化输出） | placeholder | false | — | 一期先 DeepSeek；三层记忆映射 + function calling 查 .md 索引 |
-| 「记下来」按钮 | placeholder | false | — | 存网站主库 + `#source/网页AI`；绝不自动/批量 |
+| AI 对话基础（普通对话两模式 / 多会话） | implemented | true | `src/lib/chat.ts`、`src/app/api/chat/*`、`src/components/ChatView.tsx` | A6 已实做：DeepSeek-Flash 一次性返回；临时模式 Stateless 不落库、普通模式多会话(新建/切换/重命名/删除/清空)+最近 10 轮上下文；会话壳存 `memory` 表 `scope=chat_session`、消息存 `ai_messages`，**不新增表**；侧栏新增「AI 对话」项；结构化输出仅预留 `callStructured` 不落地；不做 SSE/记账/预算/AI 限流（v0.6 未要求）；e2e 25/25 过（含真实模型调用） |
+| 三层记忆 / 检索工具 / 管家页 / 记下来 | placeholder | false | — | A7~A10 待做：三层记忆按功能映射、function calling 查 .md 实时索引、管家无状态问答、手动「记下来」`#source/网页AI` |
 
 ## 二期
 
@@ -64,6 +64,10 @@
 
 ## 变更记录
 
+- 2026-11-19（一期 A6 AI 对话基础）：实做普通对话两模式 + 多会话，DeepSeek-Flash 一次性返回；
+  临时模式不落库；**不新增表**（会话壳用 memory、消息用 ai_messages）。侧栏新增「AI 对话」项，
+  「AI 管家」保留占位。`scripts/e2e-chat.mjs` 25/25 过（含真实模型调用），
+  待办/日程/打卡/长期目标回归 15/15、15/15、25/25、16/16 过。
 - 2026-11-19（一期 A5 长期目标）：实做本地配置方案（`data/goals.json`，不进主库），
   五项字段、独立不联动；「规划」tab 改名「长期目标」。`scripts/e2e-goals.mjs` 16/16 过，
   待办/日程/打卡回归 15/15、15/15、25/25 过。

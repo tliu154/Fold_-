@@ -9,10 +9,11 @@
 底层骨架：
 - Next.js 15 + TypeScript + better-sqlite3 + zod，PWA 壳
 - 建表（4 张：items / memory / ai_messages / ai_usage）、登录鉴权（HMAC Cookie + Bearer）
-- 实做路由：`/api/health`、`/api/auth/login`、`/api/auth/logout`、`/api/features`、`/api/todos/*`、`/api/events/*`、`/api/habits/*`、`/api/checkins/*`、`/api/goals/*`
+- 实做路由：`/api/health`、`/api/auth/login`、`/api/auth/logout`、`/api/features`、`/api/todos/*`、`/api/events/*`、`/api/habits/*`、`/api/checkins/*`、`/api/goals/*`、`/api/chat/*`
 - **一期 A2 待办 / A3 日程 / A4 打卡已实做**：存 `items` 表（`type=todo` / `event` / `habit` / `checkin`），增删改查 + 软删除/回收站恢复
 - **A5 长期目标已实做**：存本地配置 `data/goals.json`，**不进 SQLite 主库**（清单 P13 手填）
-- **入口架构**：侧栏「记录与规划」一个导航项，内部五 tab 切 待办 / 日程 / 打卡 / 备忘录 / **长期目标**；首页五卡跳该入口并定位 tab
+- **A6 AI 对话基础已实做**：DeepSeek-Flash 一次性返回；临时模式 Stateless 不落库、普通模式多会话 + 最近 10 轮上下文；会话壳存 `memory` 表、消息存 `ai_messages`，不新增表
+- **入口架构**：侧栏「记录与规划」一个导航项，内部五 tab 切 待办 / 日程 / 打卡 / 备忘录 / **长期目标**；首页五卡跳该入口并定位 tab；侧栏另有独立「AI 对话」项，「AI 管家」保留占位
 - 简约 UI：右侧栏 + 点击切页 + 首页仪表盘（备忘录占位）
 - 模块注册表 `features.ts`（按 v0.6 分期）+ 数据源适配器接口 + `MODULES.md`
 - API 探针脚本 `scripts/probe-api.mjs`（开工第一步，已实测通过）
@@ -75,10 +76,11 @@ node scripts/e2e-todos.mjs     # 待办 15 项
 node scripts/e2e-events.mjs    # 日程 15 项
 node scripts/e2e-checkins.mjs  # 打卡 25 项
 node scripts/e2e-goals.mjs     # 长期目标 16 项
+node scripts/e2e-chat.mjs      # AI 对话 25 项（⚠️ 会真实调用 DeepSeek，少量费用）
 ```
 
 覆盖未登录 401 / 新增 / 字段回读 / 完成切换或日期分组或连续天数 / 筛选 / 编辑 /
-软删除 / 回收站 / 恢复 / 参数校验 / 配置文件落盘。
+软删除 / 回收站 / 恢复 / 参数校验 / 配置文件落盘 / 会话隔离与上下文。
 
 ## 配置（v0.6）
 

@@ -15,14 +15,16 @@ import TodoView from "./TodoView";
 import EventView from "./EventView";
 import CheckinView from "./CheckinView";
 import GoalView from "./GoalView";
+import ChatView from "./ChatView";
 import type { FeatureModule } from "@/features";
 
-type Page = "home" | "records" | "assistant" | "knowledge" | "settings";
+type Page = "home" | "records" | "chat" | "assistant" | "knowledge" | "settings";
 type RecordTab = "todo" | "event" | "checkin" | "memo" | "goal";
 
 const NAV: { key: Page; label: string; phase: string }[] = [
   { key: "home", label: "首页", phase: "一期" },
   { key: "records", label: "记录与规划", phase: "一期" },
+  { key: "chat", label: "AI 对话", phase: "一期" },
   { key: "assistant", label: "AI 管家", phase: "一期" },
   { key: "knowledge", label: "知识库", phase: "二期" },
   { key: "settings", label: "设置", phase: "骨架" },
@@ -70,8 +72,9 @@ export default function AppShell() {
           {page === "records" && (
             <RecordsPage tab={recordTab} setTab={setRecordTab} />
           )}
+          {page === "chat" && <ChatView />}
           {page === "assistant" && (
-            <SimplePage title="AI 管家" desc="管家问答 + 普通对话 + 三层记忆 + 检索工具（一期）" />
+            <SimplePage title="AI 管家" desc="管家/秘书身份，只处理站内问题；常用功能做成按钮（A9 实现）" />
           )}
           {page === "knowledge" && (
             <SimplePage title="知识库" desc="知识库 / 项目库看板 + 文件浏览器（二期）" />
