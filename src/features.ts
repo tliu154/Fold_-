@@ -54,12 +54,20 @@ export const features: FeatureModule[] = [
     note: "A2 已实做：标准四字段 + 完成切换 + 筛选 + 软删除/恢复；items 表 type=todo",
   },
   {
+    id: "events",
+    name: "日程（网站自建主库，按日期分组）",
+    enabled: true,
+    status: "implemented",
+    phase: "一期",
+    note: "A3 已实做：标题/日期/起止时间/地点/备注/标签 + 今天/明天/本周/更远/已过去分组 + 软删除/恢复；items 表 type=event",
+  },
+  {
     id: "dashboard",
-    name: "首页仪表盘（日程 / 打卡 / 长期目标）",
+    name: "首页仪表盘（备忘录 / 长期目标）",
     enabled: false,
     status: "placeholder",
     phase: "一期",
-    note: "待办卡已可点击进入；其余卡片骨架占位；长期目标存本地配置手填",
+    note: "待办/日程已实做；入口已收敛为「记录与规划」单一导航项 + 四个 tab（用户确认）；长期目标存本地配置手填",
   },
   {
     id: "ai-chat",

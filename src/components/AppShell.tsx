@@ -1,33 +1,42 @@
 "use client";
 
 /**
- * 应用外壳（v0.6 骨架）
+ * 应用外壳（v0.6 · 入口重构）
  * - 侧边栏在右；点击侧栏切页（非单页滚动）——清单第七节
- * - 一期只做电脑端：不做轻视图 / 底部导航 / UA 检测
- * - 未登录（/api/features 返回 401）自动跳 /login
- * - 各页面为骨架占位；具体功能按清单 3.1 走澄清门后实现
+ * - 「记录与规划」一个导航项，内部 tab 切 待办/日程/备忘录/规划（用户 2026-11-19 确认）
+ * - 首页四张卡片都点进该入口并定位对应 tab
+ * - 一期只做电脑端；未登录跳 /login
  */
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PlaceholderButton from "./PlaceholderButton";
 import EmptyState from "./EmptyState";
 import TodoView from "./TodoView";
+import EventView from "./EventView";
 import type { FeatureModule } from "@/features";
 
-type Page = "home" | "todo" | "assistant" | "schedule" | "knowledge" | "settings";
+type Page = "home" | "records" | "assistant" | "knowledge" | "settings";
+type RecordTab = "todo" | "event" | "memo" | "goal";
 
 const NAV: { key: Page; label: string; phase: string }[] = [
   { key: "home", label: "首页", phase: "一期" },
-  { key: "todo", label: "待办", phase: "一期" },
+  { key: "records", label: "记录与规划", phase: "一期" },
   { key: "assistant", label: "AI 管家", phase: "一期" },
-  { key: "schedule", label: "日程 / 打卡", phase: "一期" },
   { key: "knowledge", label: "知识库", phase: "二期" },
   { key: "settings", label: "设置", phase: "骨架" },
+];
+
+const RECORD_TABS: { key: RecordTab; label: string }[] = [
+  { key: "todo", label: "待办" },
+  { key: "event", label: "日程" },
+  { key: "memo", label: "备忘录" },
+  { key: "goal", label: "规划" },
 ];
 
 export default function AppShell() {
   const router = useRouter();
   const [page, setPage] = useState<Page>("home");
+  const [recordTab, setRecordTab] = useState<RecordTab>("todo");
   const [features, setFeatures] = useState<FeatureModule[] | null>(null);
 
   useEffect(() => {
@@ -41,25 +50,29 @@ export default function AppShell() {
         const data = await res.json();
         if (!cancelled && res.ok) setFeatures(data.features ?? []);
       })
-      .catch(() => {
-        // 网络错误时停留在骨架，不打扰
-      });
-    return () => {
-      cancelled = true;
-    };
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, [router]);
+
+  function openRecords(tab: RecordTab) {
+    setRecordTab(tab);
+    setPage("records");
+  }
 
   return (
     <div className="shell">
       <main className="main">
         <div className="main-inner">
-          {page === "home" && <HomeDashboard onOpenTodo={() => setPage("todo")} />}
-          {page === "todo" && <TodoView />}
+          {page === "home" && <HomeDashboard onOpen={openRecords} />}
+          {page === "records" && (
+            <RecordsPage tab={recordTab} setTab={setRecordTab} />
+          )}
           {page === "assistant" && (
             <SimplePage title="AI 管家" desc="管家问答 + 普通对话 + 三层记忆 + 检索工具（一期）" />
           )}
-          {page === "schedule" && <SimplePage title="日程 / 打卡" desc="网站自建主库的日程与打卡（一期）" />}
-          {page === "knowledge" && <SimplePage title="知识库" desc="知识库 / 项目库看板 + 文件浏览器（二期）" />}
+          {page === "knowledge" && (
+            <SimplePage title="知识库" desc="知识库 / 项目库看板 + 文件浏览器（二期）" />
+          )}
           {page === "settings" && <SettingsPage features={features} />}
         </div>
       </main>
@@ -99,13 +112,43 @@ export default function AppShell() {
   );
 }
 
-/** 首页仪表盘（待办已实做，其余骨架占位） */
-function HomeDashboard({ onOpenTodo }: { onOpenTodo: () => void }) {
-  const cards = [
-    { title: "待办", desc: "网站自建主库", hint: "点击进入 →", ready: true },
-    { title: "日程", desc: "网站自建主库", hint: "一期实现", ready: false },
-    { title: "打卡", desc: "网站自建主库", hint: "一期实现", ready: false },
-    { title: "长期目标", desc: "本地配置手填", hint: "一期实现", ready: false },
+/** 记录与规划：一个入口 + 四个 tab */
+function RecordsPage({ tab, setTab }: { tab: RecordTab; setTab: (t: RecordTab) => void }) {
+  return (
+    <section>
+      <div className="seg record-tabs">
+        {RECORD_TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            className={`seg-btn ${tab === t.key ? "active" : ""}`}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="record-panel">
+        {tab === "todo" && <TodoView />}
+        {tab === "event" && <EventView />}
+        {tab === "memo" && (
+          <SimplePage title="备忘录" desc="随手记的碎片与备忘（待实现）" />
+        )}
+        {tab === "goal" && (
+          <SimplePage title="规划" desc="长期目标，存本地配置手填（待实现）" />
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** 首页仪表盘（待办/日程已实做，其余骨架占位） */
+function HomeDashboard({ onOpen }: { onOpen: (tab: RecordTab) => void }) {
+  const cards: { title: string; desc: string; tab: RecordTab; ready: boolean }[] = [
+    { title: "待办", desc: "要做的事", tab: "todo", ready: true },
+    { title: "日程", desc: "某个时间点要做的事", tab: "event", ready: true },
+    { title: "备忘录", desc: "随手记的碎片", tab: "memo", ready: false },
+    { title: "长期目标", desc: "本地配置手填", tab: "goal", ready: false },
   ];
   return (
     <section>
@@ -117,17 +160,16 @@ function HomeDashboard({ onOpenTodo }: { onOpenTodo: () => void }) {
             key={c.title}
             type="button"
             className={`panel dash-card ${c.ready ? "dash-card-ready" : ""}`}
-            onClick={c.ready ? onOpenTodo : undefined}
-            disabled={!c.ready}
+            onClick={() => onOpen(c.tab)}
           >
             <div className="dash-card-title">{c.title}</div>
             <div className="muted">{c.desc}</div>
-            <div className="dash-card-hint">{c.hint}</div>
+            <div className="dash-card-hint">{c.ready ? "点击进入 →" : "待实现"}</div>
           </button>
         ))}
       </div>
       <div className="panel home-tip">
-        <EmptyState text="待办已实做；其余功能按你定的顺序逐个实现（每个都先走澄清门）。" />
+        <EmptyState text="待办 / 日程已实做；其余功能按你定的顺序逐个实现（每个都先走澄清门）。" />
       </div>
     </section>
   );
