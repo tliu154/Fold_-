@@ -14,6 +14,7 @@ import EmptyState from "./EmptyState";
 import TodoView from "./TodoView";
 import EventView from "./EventView";
 import CheckinView from "./CheckinView";
+import GoalView from "./GoalView";
 import type { FeatureModule } from "@/features";
 
 type Page = "home" | "records" | "assistant" | "knowledge" | "settings";
@@ -32,7 +33,7 @@ const RECORD_TABS: { key: RecordTab; label: string }[] = [
   { key: "event", label: "日程" },
   { key: "checkin", label: "打卡" },
   { key: "memo", label: "备忘录" },
-  { key: "goal", label: "规划" },
+  { key: "goal", label: "长期目标" },
 ];
 
 export default function AppShell() {
@@ -114,7 +115,7 @@ export default function AppShell() {
   );
 }
 
-/** 记录与规划：一个入口 + 四个 tab */
+/** 记录与规划：一个入口 + 五个 tab */
 function RecordsPage({ tab, setTab }: { tab: RecordTab; setTab: (t: RecordTab) => void }) {
   return (
     <section>
@@ -137,22 +138,20 @@ function RecordsPage({ tab, setTab }: { tab: RecordTab; setTab: (t: RecordTab) =
         {tab === "memo" && (
           <SimplePage title="备忘录" desc="随手记的碎片与备忘（待实现）" />
         )}
-        {tab === "goal" && (
-          <SimplePage title="规划" desc="长期目标，存本地配置手填（待实现）" />
-        )}
+        {tab === "goal" && <GoalView />}
       </div>
     </section>
   );
 }
 
-/** 首页仪表盘（待办/日程已实做，其余骨架占位） */
+/** 首页仪表盘（待办/日程/打卡/长期目标已实做，备忘录占位） */
 function HomeDashboard({ onOpen }: { onOpen: (tab: RecordTab) => void }) {
   const cards: { title: string; desc: string; tab: RecordTab; ready: boolean }[] = [
     { title: "待办", desc: "要做的事", tab: "todo", ready: true },
     { title: "日程", desc: "某个时间点要做的事", tab: "event", ready: true },
     { title: "打卡", desc: "习惯与随手记", tab: "checkin", ready: true },
     { title: "备忘录", desc: "随手记的碎片", tab: "memo", ready: false },
-    { title: "长期目标", desc: "本地配置手填", tab: "goal", ready: false },
+    { title: "长期目标", desc: "本地配置手填", tab: "goal", ready: true },
   ];
   return (
     <section>
@@ -173,7 +172,7 @@ function HomeDashboard({ onOpen }: { onOpen: (tab: RecordTab) => void }) {
         ))}
       </div>
       <div className="panel home-tip">
-        <EmptyState text="待办 / 日程 / 打卡已实做；其余功能按你定的顺序逐个实现（每个都先走澄清门）。" />
+        <EmptyState text="待办 / 日程 / 打卡 / 长期目标已实做；备忘录与 AI 功能按你定的顺序逐个实现（每个都先走澄清门）。" />
       </div>
     </section>
   );
