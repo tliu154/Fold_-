@@ -110,12 +110,20 @@ export const features: FeatureModule[] = [
     note: "A7 已实做：基础身份/功能记忆/临时上下文(复用 A6 最近10轮)；预设模板+设置页编辑；映射表 TS 常量+memory 表覆盖；普通模式注入、临时模式不注入；记忆带 tags；复用 memory 表不新增表",
   },
   {
+    id: "search-tools",
+    name: "function calling 检索工具（.md 索引）",
+    enabled: true,
+    status: "implemented",
+    phase: "一期",
+    note: "A8 已实做：只索引 .md 元数据(不读正文)、白名单可配、启动建一次+手动刷新；三个只读函数 search_notes/get_note/stats；普通模式两阶段调用链(最多3轮)、临时模式不挂；内存索引不新增表",
+  },
+  {
     id: "ai-chat",
-    name: "检索工具 / 管家页 / 记下来",
+    name: "管家页 / 记下来",
     enabled: false,
     status: "placeholder",
     phase: "一期",
-    note: "A8~A10 待做：function calling 查 .md 实时索引、管家无状态问答、手动「记下来」",
+    note: "A9~A10 待做：管家无状态问答、手动「记下来」",
   },
   {
     id: "save-note",

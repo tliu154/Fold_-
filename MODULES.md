@@ -26,7 +26,8 @@
 | 首页仪表盘（备忘录占位） | placeholder | false | `src/components/AppShell.tsx` | **入口架构**：侧栏「记录与规划」一个导航项 + 内部**五 tab**（待办/日程/打卡/备忘录/长期目标，用户确认，保留）；首页已改版为单列滚动分区，「查看全部 →」跳对应 tab；仅备忘录 tab 仍占位 |
 | AI 对话基础（普通对话两模式 / 多会话） | implemented | true | `src/lib/chat.ts`、`src/app/api/chat/*`、`src/components/ChatView.tsx` | A6 已实做：DeepSeek-Flash 一次性返回；临时模式 Stateless 不落库、普通模式多会话(新建/切换/重命名/删除/清空)+最近 10 轮上下文；会话壳存 `memory` 表 `scope=chat_session`、消息存 `ai_messages`，**不新增表**；侧栏新增「AI 对话」项；结构化输出仅预留 `callStructured` 不落地；不做 SSE/记账/预算/AI 限流（v0.6 未要求）；e2e 25/25 过（含真实模型调用） |
 | 三层记忆 + 功能映射表 | implemented | true | `src/lib/memory.ts`、`src/app/api/memory/*`、`src/components/MemorySettings.tsx` | A7 已实做：三层=基础身份(profile)/功能记忆(feature:chat)/临时上下文(复用 A6 最近10轮)；预设模板懒初始化 + 设置页编辑；映射表 TS 常量默认 + `memory` 表覆盖供设置页改；记忆带 tags 可按标签筛选；普通模式按 chat 映射注入 system、临时模式不注入；与 `chat_session` scope 隔离，**不新增表**；本期仅 chat 生效，assistant/capture/report 留预留条目；e2e 29/29 过 |
-| 检索工具 / 管家页 / 记下来 | placeholder | false | — | A8~A10 待做：function calling 查 .md 实时索引、管家无状态问答、手动「记下来」`#source/网页AI` |
+| function calling 检索工具（.md 索引） | implemented | true | `src/lib/indexer.ts`、`src/app/api/index/*`、`src/components/IndexSettings.tsx` | A8 已实做：只索引 `.md` 元数据(路径/标题/标签/mtime，不读正文)，只读前4KB；白名单存 `data/index-config.json` 设置页可改，默认 `D:\我的知识库`；排除密钥文件/隐藏目录/项目自身；内存索引启动建一次+手动刷新；三只读函数 `search_notes`/`get_note`/`stats`；普通模式两阶段调用链(最多3轮)、临时模式不挂；**不新增表**；e2e 24/24 过（含真实模型调用工具） |
+| 管家页 / 记下来 | placeholder | false | — | A9~A10 待做：管家无状态问答、手动「记下来」`#source/网页AI` |
 
 ## 二期
 
@@ -66,6 +67,10 @@
 
 ## 变更记录
 
+- 2026-11-20（一期 A8 function calling 检索工具）：索引 + 白名单 + 设置页 + 三只读函数
+  （已有实现）+ 本轮接入 `chat.ts` 两阶段调用链（最多3轮、tools_used）。`e2e-index.mjs`
+  24/24 过；七套回归全过。**教训：开工前必须先读 `PROJECT_PLAN.md`，本轮因未读导致
+  A8 被并行写了两套实现，已删重复的一套；此纪律已写入 PROJECT_PLAN.md。**
 - 2026-11-19（一期 A7 三层记忆 + 映射表）：实做三层记忆与功能映射，A6 普通模式接入注入、
   临时模式保持不注入；复用 `memory` 表不新增表；设置页新增「记忆与映射」区。
   `scripts/e2e-memory.mjs` 29/29 过；六套回归 15/15、15/15、27/27、16/16、25/25、25/25 过。

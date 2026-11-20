@@ -1222,6 +1222,73 @@ button {
   overflow-y: auto;
 }
 
+/* ---------- 笔记索引设置（一期 A8） ---------- */
+
+.index-block {
+  margin-top: 16px;
+}
+
+.index-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.index-dirs {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+}
+
+.index-dir-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.index-dir-row:last-child {
+  border-bottom: none;
+}
+
+.index-dir-path {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.index-results {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+
+.index-result-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.index-result-row:last-child {
+  border-bottom: none;
+}
+
+.index-result-title {
+  font-size: 13px;
+}
+
+.index-result-path {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  word-break: break-all;
+}
+
 @media (max-width: 720px) {
   .checkin-forms,
   .habit-grid {

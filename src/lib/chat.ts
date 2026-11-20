@@ -13,6 +13,7 @@ import crypto from "node:crypto";
 import { getDb } from "./db";
 import { getDailyModel } from "./config";
 import { buildSystemPrompt } from "./memory";
+import { NOTE_TOOLS, executeToolCall } from "./indexer";
 
 const SESSION_SCOPE = "chat_session";
 const CONTEXT_ROUNDS = 10; // 最近 10 轮 = 20 条消息
@@ -204,6 +205,68 @@ export async function callChat(messages: { role: string; content: string }[]): P
   return { reply, model: cfg.model, context_messages: messages.length };
 }
 
+interface ToolCallResult extends ChatResult {
+  tools_used: string[];
+}
+
+/**
+ * 带 function calling 的两阶段调用（一期 A8，只挂普通模式）：
+ * 模型返回 tool_calls → 服务端执行本地只读函数 → 结果回灌 → 模型生成最终回答
+ * - 最多 3 轮工具调用，防止循环烧钱
+ * - 对用户透明（不展示中间工具过程），非流式
+ * - 工具只读，绝不改文件
+ */
+export async function callChatWithTools(messages: { role: string; content: string }[]): Promise<ToolCallResult> {
+  const cfg = getDailyModel();
+  if (!cfg.apiKey) throw new Error("未配置 DEEPSEEK_API_KEY");
+  const url = `${cfg.baseUrl.replace(/\/$/, "")}/chat/completions`;
+  const headers = { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` };
+  const used: string[] = [];
+  const convo: Record<string, unknown>[] = messages.map((m) => ({ ...m }));
+  const MAX_ROUNDS = 3;
+
+  for (let round = 0; round <= MAX_ROUNDS; round++) {
+    const res = await fetch(url, {
+      method: "POST", headers,
+      body: JSON.stringify({ model: cfg.model, messages: convo, tools: NOTE_TOOLS, tool_choice: "auto", max_tokens: 2048 }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      choices?: { message?: {
+        content?: string | null;
+        tool_calls?: { id: string; function: { name: string; arguments: string } }[];
+      } }[];
+      error?: { message?: string };
+    };
+    if (!res.ok) throw new Error(data.error?.message || `模型调用失败(${res.status})`);
+    const msg = data.choices?.[0]?.message;
+    const calls = msg?.tool_calls ?? [];
+
+    if (calls.length === 0 || round === MAX_ROUNDS) {
+      const reply = typeof msg?.content === "string" ? msg.content : "（未生成文本回复）";
+      return { reply, model: cfg.model, context_messages: convo.length, tools_used: used };
+    }
+
+    // 把带 tool_calls 的 assistant 消息原样加入会话
+    convo.push({ role: "assistant", content: msg?.content ?? "", tool_calls: calls });
+    for (const call of calls) {
+      let args: Record<string, unknown> = {};
+      try { args = JSON.parse(call.function.arguments || "{}") as Record<string, unknown>; }
+      catch { args = {}; }
+      let result: unknown;
+      try { result = executeToolCall(call.function.name, args); }
+      catch (e) { result = { error: e instanceof Error ? e.message : "工具执行失败" }; }
+      used.push(call.function.name);
+      convo.push({
+        role: "tool",
+        tool_call_id: call.id,
+        name: call.function.name,
+        content: JSON.stringify(result),
+      });
+    }
+  }
+  return { reply: "（工具调用次数已达上限）", model: cfg.model, context_messages: convo.length, tools_used: used };
+}
+
 /**
  * 结构化输出能力预留（本期不落地调用）。
  * 后续分类 / 整理提案 / 记下来等需要程序解析的结果，走这个函数强制 json_object。
@@ -234,18 +297,23 @@ export async function callStructured<T>(messages: { role: string; content: strin
  * - mode="normal"：按 chat 映射注入「基础身份 + chat 功能记忆」到 system，
  *   再加最近 10 轮对话历史（第③层临时上下文）；用户消息与回复都落库
  * - 记忆为空则不拼 system 消息（不浪费 token）
+ * - A8：普通模式挂三个只读检索工具（function calling），临时模式不挂
  */
 export async function sendMessage(input: {
   mode: "temp" | "normal";
   session_id?: string;
   message: string;
-}): Promise<ChatResult & { session_id: string | null; memory_applied: boolean }> {
+}): Promise<ChatResult & {
+  session_id: string | null;
+  memory_applied: boolean;
+  tools_used: string[];
+}> {
   const text = input.message.trim();
   if (!text) throw new Error("消息不能为空");
 
   if (input.mode === "temp") {
     const r = await callChat([{ role: "user", content: text }]);
-    return { ...r, session_id: null, memory_applied: false };
+    return { ...r, session_id: null, memory_applied: false, tools_used: [] };
   }
 
   const sessionId = input.session_id ?? createSession().id;
@@ -257,7 +325,12 @@ export async function sendMessage(input: {
   const messages = system
     ? [{ role: "system", content: system }, ...context]
     : context;
-  const r = await callChat(messages);
+  const r = await callChatWithTools(messages);
   insertMessage(sessionId, "assistant", r.reply);
-  return { ...r, session_id: sessionId, memory_applied: Boolean(system) };
+  return {
+    ...r,
+    session_id: sessionId,
+    memory_applied: Boolean(system),
+    tools_used: r.tools_used,
+  };
 }
