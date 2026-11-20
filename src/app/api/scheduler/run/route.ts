@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) return Response.json({ error: "task_id 不合法" }, { status: 400 });
   try {
-    const message = runTaskNow(parsed.data.task_id);
+    const message = await runTaskNow(parsed.data.task_id);
     return Response.json({ message, state: readState() });
   } catch (e) {
     return Response.json({ error: (e as Error).message }, { status: 400 });

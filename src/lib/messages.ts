@@ -15,7 +15,7 @@
 import crypto from "node:crypto";
 import { getDb } from "./db";
 
-export type MessageKind = "daily_focus" | "inbox_scan" | "weekly_digest" | "missed" | "system";
+export type MessageKind = "daily_focus" | "inbox_scan" | "weekly_digest" | "missed" | "system" | "proposal";
 
 export interface MessagePayload {
   kind: MessageKind;
@@ -46,7 +46,7 @@ interface ItemRow {
 
 function nowIso(): string { return new Date().toISOString(); }
 
-const KINDS: MessageKind[] = ["daily_focus", "inbox_scan", "weekly_digest", "missed", "system"];
+const KINDS: MessageKind[] = ["daily_focus", "inbox_scan", "weekly_digest", "missed", "system", "proposal"];
 
 function parsePayload(raw: string | null): MessagePayload | null {
   try {

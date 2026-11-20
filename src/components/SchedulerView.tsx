@@ -1,13 +1,15 @@
 "use client";
 
 /**
- * 站内消息 + 定时任务（三期 C1）
- * - 上半：消息中心（未读计数 / 全部·未读筛选 / 标记已读 / 删除 / 展开正文）
- * - 下半：定时任务（增删改 / 立即运行 / 结构化选时 / 自然语言解析预览 → 确认才保存）
+ * 站内消息 + 定时任务（三期 C1）、待审批提案（三期 C2）
+ * - tab「站内消息」：消息中心（未读计数 / 全部·未读筛选 / 标记已读 / 删除 / 展开正文）
+ * - tab「待审批提案」：C2 提案列表（生成预览 / 逐条编辑 / 批准执行 / 驳回 / 留档）
+ * - 定时任务区在「站内消息」tab 下方：增删改 / 立即运行 / 结构化选时 / 自然语言解析预览 → 确认才保存
  * - 自然语言解析只调一次模型、只返回预览；点「确认添加」才 PUT 保存
- * - 不做：周报模板、AI 评述、Qwen 资讯、审批闸门、邮件与系统通知
+ * - 不做：周报模板、AI 评述、Qwen 资讯、邮件与系统通知
  */
 import { useCallback, useEffect, useState } from "react";
+import ProposalPanel from "./ProposalPanel";
 
 interface Message {
   id: string; kind: string; title: string; body: string;
@@ -35,7 +37,7 @@ interface Parsed { schedule: Schedule; label: string; confidence: string }
 const WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 const KIND_LABEL: Record<string, string> = {
   daily_focus: "每日重点", inbox_scan: "目录巡检", weekly_digest: "每周小结",
-  missed: "错过汇总", system: "系统",
+  missed: "错过汇总", system: "系统", proposal: "整理提案",
 };
 
 function fmt(iso: string | null): string {
@@ -64,6 +66,7 @@ function emptyDraft(): Draft {
 }
 
 export default function SchedulerView() {
+  const [tab, setTab] = useState<"messages" | "proposals">("messages");
   const [messages, setMessages] = useState<Message[]>([]);
   const [unread, setUnread] = useState(0);
   const [filter, setFilter] = useState<"all" | "unread">("all");
@@ -186,14 +189,21 @@ export default function SchedulerView() {
     <section>
       <h1 className="view-title">站内消息</h1>
       <p className="view-desc">
-        定时任务的汇报都投递到这里；下方是任务配置。调度跑在服务进程内，<strong>不动系统设置</strong>，
-        服务没开就不跑、错过不补跑只记次数。AI 评述将在周报轮次接入。
+        定时任务的汇报与 AI 整理提案都投递到这里。调度跑在服务进程内，<strong>不动系统设置</strong>，
+        服务没开就不跑、错过不补跑只记次数。审批闸门：<strong>你批准后才动文件</strong>。
       </p>
 
       {(error || notice) && (
         <div className={error ? "form-error" : "form-notice"}>{error ?? notice}</div>
       )}
 
+      <div className="view-tabs seg">
+        <button type="button" className={`seg-btn ${tab === "messages" ? "active" : ""}`} onClick={() => setTab("messages")}>站内消息</button>
+        <button type="button" className={`seg-btn ${tab === "proposals" ? "active" : ""}`} onClick={() => setTab("proposals")}>待审批提案</button>
+      </div>
+
+      {tab === "messages" ? (
+        <>
       {/* ---------- 消息中心 ---------- */}
       <div className="panel msg-block">
         <div className="msg-toolbar">
@@ -245,11 +255,11 @@ export default function SchedulerView() {
         </div>
         <p className="muted sch-note">
           {status?.runtime.note ?? "服务进程内调度，不动系统设置"}
-          。本轮三个内置任务只做程序填数，不调用模型生成评述。
+          。前三个内置任务只做程序填数、不调用模型生成评述；「生成整理提案」才会按需调用模型补弱标签建议。
         </p>
 
         {tasks.length === 0 ? (
-          <div className="empty-state">还没有任务，点「新建任务」或让服务自动生成默认三个。</div>
+          <div className="empty-state">还没有任务，点「新建任务」或让服务自动生成默认任务。</div>
         ) : (
           <div className="sch-list">
             {tasks.map((t) => {
@@ -349,6 +359,10 @@ export default function SchedulerView() {
           )}
         </div>
       </div>
+        </>
+      ) : (
+        <ProposalPanel />
+      )}
     </section>
   );
 }

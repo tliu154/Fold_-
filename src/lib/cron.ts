@@ -22,12 +22,11 @@ export async function registerCronTasks(): Promise<void> {
     const cron: CronApi = maybe.default ?? maybe;
 
     // 开机盘点：错过次数只看不补，站内消息会汇总一次
-    const boot = runTick();
+    const boot = await runTick();
     console.log(`[cron] 启动盘点完成，错过 ${boot.missed} 次，本次执行 ${boot.ran.length} 个任务`);
 
     cron.schedule("* * * * *", () => {
-      try { runTick(); }
-      catch (e) { console.error("[cron] tick 失败：", e); }
+      void runTick().catch((e) => console.error("[cron] tick 失败：", e));
     });
     console.log("[cron] 定时任务已注册（每 60 秒盘点一次，服务进程内运行）");
   } catch (e) {

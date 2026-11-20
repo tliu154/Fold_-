@@ -35,7 +35,8 @@ const SKIP_DIRS = new Set([".git", ".obsidian", ".trash", "node_modules", ".next
 function norm(p: string): string {
   return path.resolve(p).replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
 }
-function isUnder(child: string, parent: string): boolean {
+/** C2 提案路径校验复用：按段比较，避免「我的知识库」与「我的知识库测试」前缀误判 */
+export function isUnder(child: string, parent: string): boolean {
   const c = norm(child);
   const p = norm(parent);
   return c === p || c.startsWith(p + "/");
@@ -54,7 +55,8 @@ function pad2(n: number): string { return String(n).padStart(2, "0"); }
 function fmtDate(d: Date): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
-function safeName(s: string): string {
+/** C2 提案重算文件名复用：Windows 非法字符替换 + 长度截断 */
+export function safeName(s: string): string {
   return s.replace(/[\\/:*?"<>|\r\n\t]/g, "_").replace(/\s+/g, " ").trim().slice(0, 60) || "未命名";
 }
 
@@ -380,21 +382,22 @@ function addTypeTag(abs: string): void {
   fs.writeFileSync(abs, lines.join("\n"), "utf-8");
 }
 
-/** 执行整理：预览 → 移动/重命名/打标签 → git add + commit → 写 tidy-log.json */
-export function runTidy(): TidyResult {
-  const preview = previewTidy();
-  if (!preview.canRun) throw new Error(preview.blockedReason ?? "当前无法整理");
-
-  const root = preview.root;
-  const { inited } = ensureRepo(root);
-
+/**
+ * 公共执行体：逐条移动/重命名/打标签 → git add + commit → 写 tidy-log.json。
+ * B3 的 runTidy 与 C2 的 runTidyItems 共用这一份，避免两套实现漂移。
+ */
+function executeTidy(
+  items: TidyItem[], root: string, options: TidyOptions, inited: boolean,
+  messageOverride?: string
+): TidyResult {
   const moved: { from: string; to: string }[] = [];
-  const skipped: { path: string; reason: string }[] = preview.items
-    .filter((i) => i.status === "skip")
-    .map((i) => ({ path: i.from, reason: i.reason ?? "跳过" }));
+  const skipped: { path: string; reason: string }[] = [];
 
-  for (const item of preview.items) {
-    if (item.status !== "ready") continue;
+  for (const item of items) {
+    if (item.status !== "ready") {
+      skipped.push({ path: item.from, reason: item.reason ?? "跳过" });
+      continue;
+    }
     // 执行前再查一次占用（预览到确认之间可能被打开）
     const lock = isLocked(item.from);
     if (lock.locked) {
@@ -428,7 +431,7 @@ export function runTidy(): TidyResult {
     if (!add.ok) throw new Error(`git add 失败：${add.err || add.out}`);
   }
 
-  const message = `整理未整理笔记 ${fmtDate(new Date())}（${moved.length} 个文件）`;
+  const message = messageOverride ?? `整理未整理笔记 ${fmtDate(new Date())}（${moved.length} 个文件）`;
   const commit = git(root, [
     "-c", "user.name=Fold_归匣", "-c", "user.email=fold@local",
     "commit", "-m", message,
@@ -442,11 +445,80 @@ export function runTidy(): TidyResult {
     count: moved.length,
     message,
     inited,
-    options: preview.options,
+    options,
     moved,
     skipped,
   };
   try { appendLog(record); } catch { /* 日志写失败不影响整理结果 */ }
 
   return { ok: true, commit: hash, count: moved.length, message, inited, root, moved, skipped };
+}
+
+/** B3：整目录整理（预览 → 确认 → 执行），行为保持不变 */
+export function runTidy(): TidyResult {
+  const preview = previewTidy();
+  if (!preview.canRun) throw new Error(preview.blockedReason ?? "当前无法整理");
+  const { inited } = ensureRepo(preview.root);
+  return executeTidy(preview.items, preview.root, preview.options, inited);
+}
+
+/**
+ * C2 审批闸门：按外部传入的逐条清单执行（用户批准后调用）。
+ * - 服务端重新校验每条路径，防止前端伪造：from 必须在未整理目录内、to 必须在测试库根内
+ * - 与 runTidy 共用 executeTidy：同样的占用检测、目标同名保护、一次 commit、回滚记录
+ * - 不调 previewTidy（不重算规则），提案里的 dir/文件名/勾选以用户编辑后的为准
+ */
+export interface TidyItemInput {
+  from: string;
+  to: string;
+  filename: string;
+  dir: string;
+  title: string;
+  tags: string[];
+  actions: string[];
+  enabled?: boolean;
+}
+
+export function runTidyItems(inputs: TidyItemInput[], messageOverride?: string): TidyResult {
+  const inbox = getInboxDir();              // 内含 assertTestOnly（真实库零接触）
+  const root = targetRoot(inbox);
+  const options = getLibraries().tidy;
+
+  // 与 B3 一致的脏工作区保护：未整理目录自身排除，之外的改动一律暂停
+  if (hasCommit(root)) {
+    const dirty = dirtyFiles(root, inbox);
+    if (dirty.length > 0) {
+      throw new Error("知识库有未提交改动，先提交/还原再执行提案（避免混进同一次 commit）");
+    }
+  }
+
+  const items: TidyItem[] = inputs
+    .filter((i) => i.enabled !== false)
+    .map((raw) => {
+      const from = path.resolve(raw.from);
+      const to = path.resolve(raw.to);
+      if (!isUnder(from, inbox)) throw new Error(`提案文件不在未整理目录内：${from}`);
+      if (!isUnder(to, root)) throw new Error(`提案目标越出测试知识库：${to}`);
+      const item: TidyItem = {
+        from, to,
+        filename: raw.filename, dir: raw.dir, title: raw.title,
+        tags: raw.tags, actions: raw.actions,
+        status: "ready",
+      };
+      if (!fs.existsSync(from)) {
+        item.status = "skip";
+        item.reason = "原文件已不存在（可能已被整理或移走）";
+      } else if (norm(to) !== norm(from) && fs.existsSync(to)) {
+        item.status = "skip";
+        item.reason = "目标位置已有同名文件，不覆盖";
+      } else {
+        const lock = isLocked(from);
+        if (lock.locked) { item.status = "skip"; item.reason = lock.reason ?? "文件被占用"; }
+      }
+      return item;
+    });
+
+  if (items.length === 0) throw new Error("没有勾选任何条目，无需执行");
+  const { inited } = ensureRepo(root);
+  return executeTidy(items, root, options, inited, messageOverride);
 }

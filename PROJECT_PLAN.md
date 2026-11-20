@@ -233,8 +233,44 @@ v0.6 清单要的是「**本机轻量个人 AI 指挥台：整合 + 调度 + 自
     「零接触」快照必须排除 `.obsidian`，否则外部程序误伤断言；
     ③ 既有 `e2e-libraries`/`e2e-obsidian` 断言假设「测试库只有自己的 fixture」，
     连续跑多套时互相误伤 → 改为只校验自己创建的文件（已修）。
+- ✅ **三期 C2 审批闸门（AI 提案 → 用户批准才执行）已实做**（2026-11-20）：澄清门 4 问全按推荐、
+  15 条规格复述后用户「确认」。**核心是不重写 B3 执行引擎**，只在前面补一条「异步提案」链路：
+  AI/定时主动出提案 → 存库 → 站内消息 → 稍后由用户批准 → 才复用 B3 执行。
+  - 数据**不新增表**：提案复用 `items` 表 `type=proposal`，payload 存 {status,items,ai_used,ai_failed,
+    source,commit}；站内消息新增 `kind=proposal`（`messages.ts` 的 `MessageKind` 加一项）。
+  - 生成：`src/lib/proposals.ts` → `generateProposalPreview()` 先跑 B3 `previewTidy()` 纯规则预览；
+    **只对「无标签/标签不全」的 .md 走 1 次 AI 批量调用**（`callStructured`，上限 10 个，只补标签建议用于
+    推算目标目录，**绝不写 frontmatter、不改正文**）；合规标签文件一律沿用 B3 纯规则；模型不可用/429
+    如实标注 `ai_failed` 并降级为纯规则提案，不重试、不假装成功。**生成预览不落库**。
+  - 保存：`saveProposal()` 落库 + 去重 pending 文件（同文件已在待审批提案里则不重复）+ 发 `kind=proposal`
+    站内消息；**`to` 路径服务端重算不信任客户端**，`dir` 限制在 dirMap 允许集合 + 回落「笔记」。
+  - 批准：`approveProposal()` 校验 stale（源文件已被移动/改动则跳过）→ 复用 `tidy.ts` 抽出的公共执行体
+    `executeTidy()` 新增入口 `runTidyItems()`（按逐条编辑后的 enabled/dir/filename 执行），
+    **一次批准 = 一次 git commit**，hash 回填提案；脏工作区/占用/越界沿用 B3 全部防护。
+  - 定时：C1 调度器新增第 4 个默认任务 `proposal_scan`（每天 09:00）；执行时
+    `generateProposalPreview()+saveProposal()`，无新文件发一条 `kind=system` 说明消息。
+  - UI：`SchedulerView.tsx` 加「待审批提案」tab（列表+逐条勾选/改目录文件名+批准/拒绝/删除+commit 展示）；
+    `KnowledgeView.tsx` 整理区并排「整理新笔记」与「生成提案预览」；共享组件
+    `ProposalGenerator.tsx`（生成预览→保存）/ `ProposalPanel.tsx`（审批台）；
+    `AppShell.tsx` 侧栏徽标纳入「未读消息 + 待审批提案数」。
+  - 接口 `/api/proposals`(GET 列表/POST 生成预览)、`/save`、`/[id]`(GET/PATCH/DELETE)、`/[id]/approve`。
+  - **验收**：`scripts/e2e-proposals.mjs` **98/98 过**（401/生成不落库/弱标签才走 AI/合规标签纯规则/
+    保存发消息/去重/逐条编辑生效/批准真移动+改名+一次 commit/拒绝不写文件/stale 跳过/脏工作区暂停/
+    越权 400/B3 原按钮不受影响/真实库零接触；模型严格 1 次最小真实调用）；14 套既有回归分三批全过
+    （todos 15、events 15、goals 16、checkins 27、home 25、chat 25、memory 29、index 24、butler 14、
+    capture 39、libraries 28、obsidian 33、tidy 63、scheduler 76）。
+  - **踩坑**：① C1 遗留 `data/scheduler.json` 只有 3 任务，`defaultTasks()` 只在文件不存在时生成
+    → 老配置升级**不会自动获得第 4 任务**；加 `seedVersion` 一次性迁移（`readConfig` 见到旧版本即补齐
+    `proposal_scan` 并写标记，用户后续删任务仍自由，不被反复塞回）。
+    ② zod schema 的 `enabled` 是可选但 `RawItem` 定义成必填 → tsc 报错，改可选。
+    ③ C2 样式插入 `globals.css` 曾因 old_string 用了不存在的独立小 `@media` 块而失败 → 真实末尾是
+    含 `.shell/.main/.sidebar/...` 的完整媒体查询块，改用完整块做锚点。
+    ④ `e2e-tidy.mjs` 收尾删测试库 `.git`：git 对象文件默认只读，某些环境回收站式 `fs.rmSync` 会 abort
+    → 加 `rmGit()`（先递归 `chmod 666` 去只读，再回落 `cmd /c rmdir /S /Q`），前置清场与收尾都用它。
+    ⑤ 验收脚本偶发 `ECONNRESET`（瞬时连接重置）→ `api()` 加网络层轻量重试（仅 ECONNRESET/连接被拒/
+    TypeError 重试，HTTP 4xx/5xx 正常返回不重试），消除假失败。
 - ⏭️ 下一步：二期只剩「未整理区」大愿景（多格式 + 管家按规范分类 + 用户批准），
-  本质是 B3 + 三期审批闸门的组合；或直接按 C1 锁定顺序继续三期：
-  **审批闸门 → 周报+数据源面板 → Qwen 资讯 → GLM/Qwen 路由补齐**（每轮仍单独走澄清门）。
+  本质是 B3 + 三期审批闸门的组合（C2 已铺好底座）；或直接按 C1 锁定顺序继续三期：
+  **周报+数据源面板 → Qwen 资讯 → GLM/Qwen 路由补齐**（每轮仍单独走澄清门）。
 - 每个用户可见功能开工前仍严格走清单 3.1 五步，不跳过。
 - 备注（用户 2026-11-19）：op 队列 / 审批台 / 快照 / 审计在四期移动端可能需要，先记下，届时重新设计。

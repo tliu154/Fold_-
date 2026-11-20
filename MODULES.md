@@ -43,7 +43,7 @@
 | 模块 | 状态 | enabled | 说明 |
 |---|---|---|---|
 | 定时任务调度 + 站内消息（C1） | implemented | true | `src/lib/scheduler.ts`、`messages.ts`、`cron.ts`、`instrumentation.ts`、`/api/scheduler/*`、`/api/messages`、`SchedulerView.tsx` | C1 已实做：node-cron 每 60 秒盘点 + 启动错过盘点（不补跑只记次数）；配置/运行态两份 JSON；消息复用 `items(type=message)` 不新增表；三内置任务纯程序填数不调模型；自然语言解析 1 次 `callStructured` 只预览、确认才保存；**不动系统启动项**；AI 评述留周报轮次；`e2e-scheduler.mjs` 75/75 过 |
-| 审批闸门（AI 提案 → 用户批准才执行） | pending_clarify | false | C1 澄清门拆出、本轮不做；后续可复用 B3 变更预览 + git 回滚，限打标签/移动/重命名三种可逆操作 |
+| 审批闸门（AI 提案 → 用户批准才执行） | implemented | true | C2 已实做：`src/lib/proposals.ts`、`tidy.ts` 抽出 `runTidyItems()`、调度器 `proposal_scan`、`/api/proposals/*`、`ProposalGenerator.tsx`/`ProposalPanel.tsx`、SchedulerView「待审批提案」tab、KnowledgeView「生成提案预览」按钮、AppShell 徽标纳入待审批数。AI 一次批量建议只补弱标签、不写正文、预览不落库、保存才发 `kind=proposal` 消息、逐条编辑后批准复用 B3 执行（一次批准一次 git commit）、不新增表（复用 `items(type=proposal)`）；C1 老配置经 `seedVersion` 一次性迁移补齐第 4 任务；`e2e-proposals.mjs` 98/98 过、14 套回归全过 |
 | 周报草稿 + 数据源开关面板 | pending_clarify | false | 模板骨架 + 程序填数 + AI 评述 |
 | 资讯订阅（Qwen 内置联网） | pending_clarify | false | 一期不做 RSS；资讯只走 Qwen |
 | GLM / Qwen 接入（三模型路由补齐） | pending_clarify | false | 二/三期验证后插 |
@@ -70,6 +70,18 @@
 
 ## 变更记录
 
+- 2026-11-20（三期 C2 审批闸门）：澄清门 4 问全按推荐 + 15 条规格复述确认。
+  **不重写 B3 执行引擎**，只补异步提案链路：AI/定时出提案 → 落库 → 站内消息 → 稍后批准 →
+  复用 B3 执行。不新增表（复用 `items(type=proposal)`、消息加 `kind=proposal`）。
+  `proposals.ts` 生成预览（B3 纯规则打底 + 1 次 AI 批量调用只补弱标签文件、上限 10、只用于推目录、
+  不改正文，模型不可用降级并如实标 `ai_failed`）；保存去重并发消息、`to` 服务端重算；批准校验 stale
+  后调 `runTidyItems()`（`tidy.ts` 抽出公共执行体 `executeTidy`），一次批准一次 git commit。
+  调度器加第 4 默认任务 `proposal_scan`（每天 09:00）+ `seedVersion` 老配置一次性迁移。
+  `e2e-proposals.mjs` 98/98 过；14 套回归分三批全过（scheduler 变 76、tidy 63）。
+  **踩坑**：① 老 scheduler.json 只有 3 任务不会自动补第 4 → seedVersion 迁移；
+  ② RawItem.enabled 可选/必填不一致 → tsc；③ globals.css 末尾是完整 @media 块，样式插入须用真实锚点；
+  ④ e2e-tidy 删只读 `.git` 会 abort → rmGit() 去只读 + cmd rmdir 回落；
+  ⑤ 验收脚本偶发 ECONNRESET → api() 网络层轻量重试（4xx/5xx 不重试）。
 - 2026-11-20（三期 C1 定时任务调度 + 站内消息）：两轮澄清门 + 16 条规格复述确认；
   用户追加「模型调用能跑通就行」→ 只 1 次最小真实调用验解析链路。
   **不动系统**：instrumentation → cron.ts 用 node-cron 每 60 秒 runTick()；

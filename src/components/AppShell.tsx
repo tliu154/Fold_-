@@ -52,6 +52,7 @@ export default function AppShell() {
   const [recordTab, setRecordTab] = useState<RecordTab>("todo");
   const [features, setFeatures] = useState<FeatureModule[] | null>(null);
   const [unread, setUnread] = useState(0);
+  const [pending, setPending] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,12 +69,15 @@ export default function AppShell() {
     return () => { cancelled = true; };
   }, [router]);
 
-  // C1：侧栏未读徽标。定时消息由后台生成，页面切换 + 每 20 秒刷新一次
+  // C1 未读消息 + C2 待审批提案。定时消息/提案由后台生成，页面切换 + 每 20 秒刷新一次
   useEffect(() => {
     let cancelled = false;
     const load = () => {
       fetch("/api/messages?filter=unread")
         .then(async (res) => { if (res.ok && !cancelled) setUnread((await res.json()).unread ?? 0); })
+        .catch(() => {});
+      fetch("/api/proposals")
+        .then(async (res) => { if (res.ok && !cancelled) setPending((await res.json()).pending ?? 0); })
         .catch(() => {});
     };
     load();
@@ -117,7 +121,11 @@ export default function AppShell() {
             >
               <span>
                 {item.label}
-                {item.key === "messages" && unread > 0 && <span className="nav-badge">{unread}</span>}
+                {item.key === "messages" && unread + pending > 0 && (
+                  <span className="nav-badge" title={`${unread} 条未读消息 · ${pending} 条待审批提案`}>
+                    {unread + pending}
+                  </span>
+                )}
               </span>
               <span className="nav-phase">{item.phase}</span>
             </button>

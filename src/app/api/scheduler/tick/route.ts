@@ -7,12 +7,12 @@ import { requireAuth } from "@/lib/auth";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { runTick, readState } from "@/lib/scheduler";
 
-export function POST(req: Request) {
+export async function POST(req: Request) {
   const denied = requireAuth(req);
   if (denied) return denied;
   if (!rateLimit(clientKey(req, "scheduler-tick"), 60, 60_000)) {
     return Response.json({ error: "操作过于频繁，请稍后再试" }, { status: 429 });
   }
-  const result = runTick();
+  const result = await runTick();
   return Response.json({ result, state: readState() });
 }

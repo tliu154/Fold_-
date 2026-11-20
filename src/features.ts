@@ -180,10 +180,10 @@ export const features: FeatureModule[] = [
   {
     id: "approval-gate",
     name: "审批闸门（AI 提案 → 用户批准才执行）",
-    enabled: false,
-    status: "pending_clarify",
+    enabled: true,
+    status: "implemented",
     phase: "三期",
-    note: "C1 澄清门已拆出、本轮不做；后续可复用 B3 变更预览 + git 回滚，限打标签/移动/重命名三种可逆操作",
+    note: "C2 已实做：定时/手动出提案（AI 一次批量建议只补弱标签）→ 落库 + 站内消息 → 逐条编辑/批准后复用 B3 runTidyItems 执行，一次批准一次 git commit；不新增表、不改正文、真实库零接触；e2e-proposals.mjs 98/98 过、14 套回归全过",
   },
   {
     id: "weekly-report",

@@ -19,7 +19,7 @@ const scheduleSchema = z.object({
 const taskSchema = z.object({
   id: z.string().max(100).optional(),
   name: z.string().trim().min(1, "请输入任务名称").max(60),
-  job: z.enum(["daily_focus", "inbox_scan", "weekly_digest"]),
+  job: z.enum(["daily_focus", "inbox_scan", "weekly_digest", "proposal_scan"]),
   enabled: z.boolean(),
   schedule: scheduleSchema,
 });

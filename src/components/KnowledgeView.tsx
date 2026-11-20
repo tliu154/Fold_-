@@ -1,15 +1,17 @@
 "use client";
 
 /**
- * 知识库 / 项目库页（二期 B1，B2 增补 obsidian:// 跳转，B3 增补「整理新笔记」）
+ * 知识库 / 项目库页（二期 B1，B2 增补 obsidian:// 跳转，B3 增补「整理新笔记」，C2 增补提案入口）
  * - 两 tab：文件浏览（只读列表+筛选+元数据）/ 项目进度（STATUS.md 只读看板）
  * - B2：文件行「在 Obsidian 打开」链接；库名为空则禁用并提示；顶部可填写 Obsidian 库名
  * - B3：文件浏览 tab 顶部显示未整理文件数 + 「整理新笔记」按钮；
  *       点击只出变更预览，点「确认并整理」才真正移动/重命名（一次整理 = 一次 git commit）
+ * - C2：整理区并排「生成提案预览」→ 提案预览不落库 → 保存后发站内消息，等你批准才动文件
  * - 下方「资源库配置」：统一配知识库目录/项目库目录，并收敛 A8 检索白名单与 A10 导出
- * - 不做：OCR、编辑正文、自动/定时整理（三期）
+ * - 不做：OCR、编辑正文、自动整理（B3 手动确认 / C2 用户批准才执行）
  */
 import { useCallback, useEffect, useState } from "react";
+import ProposalGenerator from "./ProposalGenerator";
 
 interface FileEntry {
   path: string; name: string; ext: string; size: number; mtime: string;
@@ -67,6 +69,7 @@ export default function KnowledgeView() {
   const [tidy, setTidy] = useState<TidyStatus | null>(null);
   const [tidyPreview, setTidyPreview] = useState<TidyPreview | null>(null);
   const [tidyBusy, setTidyBusy] = useState(false);
+  const [proposalOpen, setProposalOpen] = useState(false);
 
   const loadFiles = useCallback(async () => {
     const q = new URLSearchParams();
@@ -214,15 +217,31 @@ export default function KnowledgeView() {
                 <div className="muted">上次整理：{tidy.last.count} 个文件 · commit {tidy.last.commit}</div>
               )}
             </div>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={openTidyPreview}
-              disabled={tidyBusy}
-            >
-              {tidyBusy ? "处理中…" : "整理新笔记"}
-            </button>
+            <div className="lib-tidy-actions">
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => { setProposalOpen(false); openTidyPreview(); }}
+                disabled={tidyBusy}
+              >
+                {tidyBusy ? "处理中…" : "整理新笔记"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => { setTidyPreview(null); setProposalOpen(true); }}
+              >
+                生成提案预览
+              </button>
+            </div>
           </div>
+          {proposalOpen && (
+            <ProposalGenerator
+              autoOpen
+              onClose={() => setProposalOpen(false)}
+              onSaved={() => { setProposalOpen(false); loadTidy(); }}
+            />
+          )}
           {tidy?.blockedReason && !tidyPreview && (
             <p className="muted">{tidy.blockedReason}</p>
           )}

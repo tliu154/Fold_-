@@ -111,14 +111,16 @@ async function main() {
   const s0 = await api("/api/scheduler");
   ok("GET /api/scheduler → 200", s0.status === 200, JSON.stringify(s0.data).slice(0, 200));
   const tasks0 = s0.data.config?.tasks ?? [];
-  ok("配置含 3 个内置任务", tasks0.length === 3, JSON.stringify(tasks0.map((t) => t.job)));
-  ok("三个 job 齐全（每日重点/未整理巡检/每周小结）",
+  ok("配置含 4 个内置任务（C2 增「生成整理提案」）", tasks0.length === 4, JSON.stringify(tasks0.map((t) => t.job)));
+  ok("原三个 job 齐全（每日重点/未整理巡检/每周小结）",
     ["daily_focus", "inbox_scan", "weekly_digest"].every((j) => tasks0.some((t) => t.job === j)),
+    JSON.stringify(tasks0.map((t) => t.job)));
+  ok("C2 新增 proposal_scan 内置任务", tasks0.some((t) => t.job === "proposal_scan"),
     JSON.stringify(tasks0.map((t) => t.job)));
   ok("默认全部启用", tasks0.every((t) => t.enabled === true));
   ok("AI 评述本轮关闭（占位不做）", s0.data.runtime?.ai_commentary_enabled === false);
   ok("runtime 说明服务进程内调度", typeof s0.data.runtime?.note === "string" && s0.data.runtime.note.includes("不动系统"));
-  ok("jobs 目录返回 3 项", (s0.data.jobs ?? []).length === 3);
+  ok("jobs 目录返回 4 项", (s0.data.jobs ?? []).length === 4);
   const m0 = await api("/api/messages");
   ok("GET /api/messages → 200", m0.status === 200 && Array.isArray(m0.data.messages));
   ok("返回 unread 计数", typeof m0.data.unread === "number");
@@ -134,7 +136,7 @@ async function main() {
   ok("PUT 新增任务 → 200", put1.status === 200, JSON.stringify(put1.data).slice(0, 200));
   ok("回读含新任务", (put1.data.config?.tasks ?? []).some((t) => t.id === extra.id));
   const g1 = await api("/api/scheduler");
-  ok("GET 回读任务数 = 4", (g1.data.config?.tasks ?? []).length === 4);
+  ok("GET 回读任务数 = 5", (g1.data.config?.tasks ?? []).length === 5);
 
   const edited = { ...toInput(extra), name: "验收用任务（改名）", enabled: false, schedule: { kind: "weekly", time: "07:30", weekday: 3 } };
   const put2 = await api("/api/scheduler", { method: "PUT", body: JSON.stringify({ tasks: [...originalTasks.map(toInput), edited] }) });
@@ -145,7 +147,7 @@ async function main() {
     JSON.stringify(e2));
 
   const put3 = await api("/api/scheduler", { method: "PUT", body: JSON.stringify({ tasks: originalTasks.map(toInput) }) });
-  ok("PUT 删除任务 → 200 且回到 3 个", put3.status === 200 && (put3.data.config?.tasks ?? []).length === 3);
+  ok("PUT 删除任务 → 200 且回到 4 个", put3.status === 200 && (put3.data.config?.tasks ?? []).length === 4);
 
   const bad = [
     ["时间格式 99:99 → 400", { tasks: [{ name: "x", job: "daily_focus", enabled: true, schedule: { kind: "daily", time: "99:99" } }] }],
@@ -158,7 +160,7 @@ async function main() {
     ok(name, r.status === 400, JSON.stringify(r.data).slice(0, 160));
   }
   const afterBad = await api("/api/scheduler");
-  ok("非法 PUT 未破坏原配置", (afterBad.data.config?.tasks ?? []).length === 3);
+  ok("非法 PUT 未破坏原配置", (afterBad.data.config?.tasks ?? []).length === 4);
 
   // ---------- 自然语言解析：1 次最小真实调用，只预览不落库 ----------
   const emptyParse = await post("/api/scheduler/parse", { text: "" });

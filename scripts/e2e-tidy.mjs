@@ -38,13 +38,28 @@ function warn(name, why) {
   console.log(`  ⚠ ${name} —— ${why}`);
 }
 async function api(p, options = {}) {
-  const res = await fetch(`${BASE}${p}`, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers ?? {}) },
-  });
-  let data = {};
-  try { data = await res.json(); } catch {}
-  return { status: res.status, data };
+  // 仅对传输层瞬时错误（ECONNRESET / 连接被拒）重试；HTTP 4xx/5xx 是正常返回，不重试
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(`${BASE}${p}`, {
+        ...options,
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers ?? {}) },
+      });
+      let data = {};
+      try { data = await res.json(); } catch {}
+      return { status: res.status, data };
+    } catch (e) {
+      lastErr = e;
+      const code = e?.cause?.code ?? e?.code;
+      if (attempt < 2 && (code === "ECONNRESET" || code === "ECONNREFUSED" || e?.name === "TypeError")) {
+        await new Promise((r) => setTimeout(r, 300));
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw lastErr;
 }
 function put(body) { return api("/api/libraries", { method: "PUT", body: JSON.stringify(body) }); }
 function git(args) {
@@ -70,6 +85,29 @@ function cleanVault() {
   for (const name of fs.readdirSync(TEST_POSIX)) {
     if (name === ".git") continue;
     try { fs.rmSync(path.join(TEST_POSIX, name), { recursive: true, force: true }); } catch {}
+  }
+}
+/**
+ * 删测试库 .git：git 对象文件默认只读，某些 Windows 环境的回收站式删除会 abort，
+ * 导致「测试库已清空」断言假失败。先递归去掉只读属性，再回落系统 rmdir 强删。
+ */
+function rmGit() {
+  const g = path.join(TEST_POSIX, ".git");
+  if (!fs.existsSync(g)) return;
+  const chmodAll = (dir) => {
+    for (const n of fs.readdirSync(dir)) {
+      const p = path.join(dir, n);
+      let st;
+      try { st = fs.statSync(p); } catch { continue; }
+      if (st.isDirectory()) chmodAll(p);
+      else { try { fs.chmodSync(p, 0o666); } catch {} }
+    }
+  };
+  try { chmodAll(g); fs.rmSync(g, { recursive: true, force: true }); return; } catch { /* 回落 */ }
+  try {
+    execFileSync("cmd", ["/c", "rmdir", "/S", "/Q", g.replace(/\//g, "\\")], { windowsHide: true, stdio: "ignore" });
+  } catch (e) {
+    console.log(`  ! 未能删除 .git：${e.message}（请手动删除 ${g}）`);
   }
 }
 function cfgBody(cfg, overrides = {}) {
@@ -122,13 +160,10 @@ async function main() {
   const snapReal = () => allFiles(realInbox).map((f) => `${f}|${fs.statSync(f).mtimeMs}`).join("|");
   const realBefore = snapReal();
 
-  // 清场：本次测试从「无 git 仓库」开始
-  const repoBefore = fs.existsSync(path.join(TEST_POSIX, ".git"));
-  if (repoBefore) {
-    try { fs.rmSync(path.join(TEST_POSIX, ".git"), { recursive: true, force: true }); }
-    catch { console.log("  ! 无法清理已有 .git，将按「已有仓库」口径断言"); }
-  }
+  // 清场：本次测试从「无 git 仓库」开始（rmGit 会先去只读属性再回落强删）
+  rmGit();
   const startedCleanRepo = !fs.existsSync(path.join(TEST_POSIX, ".git"));
+  if (!startedCleanRepo) console.log("  ! 无法清理已有 .git，将按「已有仓库」口径断言");
 
   // 1) 未整理目录不存在
   cleanVault();
@@ -289,9 +324,7 @@ async function main() {
   // 11) 清理
   cleanVault();
   for (const d of ["未整理", "笔记", "课件和教材", "资源库", "项目库"]) rm(path.join(TEST_POSIX, d));
-  try { fs.rmSync(path.join(TEST_POSIX, ".git"), { recursive: true, force: true }); } catch (e) {
-    console.log(`  ! 未能删除 .git：${e.message}（请手动删除 ${path.join(TEST_POSIX, ".git")}）`);
-  }
+  rmGit();
   if (logBackup === null) rm(LOG_FILE); else fs.writeFileSync(LOG_FILE, logBackup, "utf-8");
   const restored = await api("/api/libraries");
   ok("配置已恢复（inboxDir/选项回到原值）",

@@ -29,10 +29,11 @@ import {
   createMessage, findBySource, updateMessageBody,
   type MessageKind, type Message,
 } from "./messages";
+import { generateProposalPreview, saveProposal } from "./proposals";
 
 /* ---------------- 类型 ---------------- */
 
-export type JobId = "daily_focus" | "inbox_scan" | "weekly_digest";
+export type JobId = "daily_focus" | "inbox_scan" | "weekly_digest" | "proposal_scan";
 
 export interface Schedule {
   kind: "daily" | "weekly";
@@ -52,6 +53,8 @@ export interface SchedulerTask {
 
 export interface SchedulerConfig {
   version: 1;
+  /** 默认任务已补齐到第几版：C2 起为 2（补齐 proposal_scan），避免旧配置升级后缺任务 */
+  seedVersion?: number;
   tasks: SchedulerTask[];
 }
 
@@ -72,6 +75,7 @@ export const JOB_CATALOG: { id: JobId; name: string; desc: string }[] = [
   { id: "daily_focus", name: "每日重点", desc: "汇总今天待办 / 日程 / 打卡为一条站内消息" },
   { id: "inbox_scan", name: "未整理目录巡检", desc: "发现新 .md 就提醒去点「整理新笔记」，只读、绝不自动整理" },
   { id: "weekly_digest", name: "每周数据小结", desc: "本周待办完成 / 打卡 / 日程 / 整理次数，纯程序填数不调模型" },
+  { id: "proposal_scan", name: "生成整理提案", desc: "C2：扫未整理目录出变更提案并发站内消息，等你批准后才会动文件（AI 只补弱标签）" },
 ];
 
 /** AI 评述占位：C1 不落地，周报轮次接入（清单「模板骨架 + 程序填数 + AI 评述」第三步） */
@@ -103,23 +107,42 @@ function defaultTasks(now = new Date()): SchedulerTask[] {
       schedule: { kind: "daily", time: "20:00" }, created_at: at, updated_at: at },
     { id: "job-weekly-digest", name: "每周数据小结", job: "weekly_digest", enabled: true,
       schedule: { kind: "weekly", time: "21:00", weekday: 0 }, created_at: at, updated_at: at },
+    { id: "job-proposal-scan", name: "生成整理提案", job: "proposal_scan", enabled: true,
+      schedule: { kind: "daily", time: "09:00" }, created_at: at, updated_at: at },
   ];
 }
+
+/** 默认任务种子的版本：C1=1（3 个内置任务）、C2=2（增加 proposal_scan） */
+const SEED_VERSION = 2;
 
 export function readConfig(): SchedulerConfig {
   try {
     const parsed = JSON.parse(fs.readFileSync(configPath(), "utf-8")) as Partial<SchedulerConfig>;
     if (parsed.version === 1 && Array.isArray(parsed.tasks)) {
-      return { version: 1, tasks: parsed.tasks as SchedulerTask[] };
+      const tasks = parsed.tasks as SchedulerTask[];
+      const seeded = typeof parsed.seedVersion === "number" ? parsed.seedVersion : 1;
+      if (seeded < SEED_VERSION) {
+        // C1 老配置只有 3 个内置任务：补齐新增的默认任务，保留用户自定义任务与
+        // 已有任务的时间/开关。只迁移一次（靠 seedVersion 标记），之后用户删掉的任务不会被补回。
+        const jobs = new Set(tasks.map((t) => t.job));
+        const at = nowIso();
+        const added = defaultTasks()
+          .filter((t) => !jobs.has(t.job))
+          .map((t) => ({ ...t, created_at: at, updated_at: at }));
+        const migrated: SchedulerConfig = { version: 1, seedVersion: SEED_VERSION, tasks: [...tasks, ...added] };
+        atomicWrite(configPath(), migrated);
+        return migrated;
+      }
+      return { version: 1, seedVersion: seeded, tasks };
     }
-  } catch { /* 不存在或损坏 → 首次生成默认三任务 */ }
-  const cfg: SchedulerConfig = { version: 1, tasks: defaultTasks() };
+  } catch { /* 不存在或损坏 → 首次生成默认任务 */ }
+  const cfg: SchedulerConfig = { version: 1, seedVersion: SEED_VERSION, tasks: defaultTasks() };
   atomicWrite(configPath(), cfg);
   return cfg;
 }
 
 export function writeConfig(tasks: SchedulerTask[]): SchedulerConfig {
-  const cfg: SchedulerConfig = { version: 1, tasks };
+  const cfg: SchedulerConfig = { version: 1, seedVersion: SEED_VERSION, tasks };
   atomicWrite(configPath(), cfg);
   return cfg;
 }
@@ -201,6 +224,10 @@ function section(title: string, lines: string[]): string {
 }
 
 function buildJobBody(job: JobId, now: Date): { title: string; body: string; kind: MessageKind } {
+  // C2 的 proposal_scan 在 executeJob 里单独异步处理，这里只作防御性占位
+  if (job === "proposal_scan") {
+    return { title: "生成整理提案", body: "提案生成中…", kind: "system" };
+  }
   const today = todayStr(now);
   if (job === "daily_focus") {
     const todos = listTodos("active");
@@ -269,12 +296,38 @@ function buildJobBody(job: JobId, now: Date): { title: string; body: string; kin
   return { title: `每周数据小结 · ${weekStartStr}`, body, kind: "weekly_digest" };
 }
 
-/** 执行一个任务：生成一条站内消息。手动与定时走同一条路径 */
-export function executeJob(task: SchedulerTask, trigger: "manual" | "cron", now = new Date()): Message {
-  const { title, body, kind } = buildJobBody(task.job, now);
+/**
+ * 执行一个任务：生成一条站内消息。手动与定时走同一条路径。
+ * C2：proposal_scan 需要异步调模型，因此整条执行链改为 async；
+ * 原三个任务只是把同步返回值包进 Promise，行为完全不变。
+ */
+export async function executeJob(
+  task: SchedulerTask, trigger: "manual" | "cron", now = new Date()
+): Promise<Message> {
   const source = trigger === "cron"
     ? `cron:${task.id}:${todayStr(now)}`
     : `manual:${task.id}:${now.getTime()}`;
+
+  if (task.job === "proposal_scan") {
+    const preview = await generateProposalPreview();
+    const saved = saveProposal({
+      items: preview.items,
+      ai_used: preview.ai_used,
+      ai_failed: preview.ai_failed,
+      source,
+    });
+    if (saved) return findBySource(`proposal:${saved.id}`)!;
+    // 没有新文件（或都已存在 pending 提案）→ 不重复发提案消息，只回一条说明
+    return createMessage({
+      kind: "system",
+      title: `生成整理提案 · ${todayStr(now)}`,
+      body: `本次扫描没有需要新建提案的文件（未整理目录为空，或这些文件已有待审批提案）。\n`
+        + `AI 建议：${preview.ai_failed ? `未生效（${preview.ai_failed}）` : preview.ai_used ? "已启用" : "本次无需调用"}。`,
+      source,
+    }, trigger === "cron");
+  }
+
+  const { title, body, kind } = buildJobBody(task.job, now);
   return createMessage({ kind, title, body, source }, trigger === "cron");
 }
 
@@ -311,7 +364,7 @@ export interface TickResult {
  * 一次调度盘点。由 cron.ts 每分钟调用、服务启动时立即调用一次，
  * 也可由 /api/scheduler/tick 手动触发（验收用，逻辑完全相同）。
  */
-export function runTick(now = new Date()): TickResult {
+export async function runTick(now = new Date()): Promise<TickResult> {
   const cfg = readConfig();
   const state = readState();
   const at = nowIso(now);
@@ -345,7 +398,7 @@ export function runTick(now = new Date()): TickResult {
       missedBy[task.id] = missedDues.length;
     }
     if (fresh) {
-      try { executeJob(task, "cron", now); ran.push(task.id); cur.last_run_at = at; }
+      try { await executeJob(task, "cron", now); ran.push(task.id); cur.last_run_at = at; }
       catch (e) { console.error(`[scheduler] 任务 ${task.id} 执行失败：`, e); }
     }
     cur.last_settled_at = at;
@@ -358,10 +411,10 @@ export function runTick(now = new Date()): TickResult {
   return { at, ran, missed: missedTotal, missed_by_task: missedBy };
 }
 
-export function runTaskNow(taskId: string, now = new Date()): Message {
+export async function runTaskNow(taskId: string, now = new Date()): Promise<Message> {
   const task = readConfig().tasks.find((t) => t.id === taskId);
   if (!task) throw new Error("任务不存在");
-  const msg = executeJob(task, "manual", now);
+  const msg = await executeJob(task, "manual", now);
   const state = readState();
   const at = nowIso(now);
   const cur: TaskState = state.tasks[task.id] ?? {
