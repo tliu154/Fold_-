@@ -11,7 +11,8 @@ import { getLibraries } from "./libraries";
 
 const MAX_FILES = 5000;
 const EXCLUDE_DIRS = new Set([".git", ".obsidian", ".trash", "node_modules", ".next", "__pycache__", ".venv", "venv"]);
-const EXCLUDE_NAME_RE = /(key|secret|env|credential|token|password)/i;
+/** B1 排除规则：疑似密钥/凭据文件；B3 整理沿用（导出到别处就泄露了） */
+export const EXCLUDE_NAME_RE = /(key|secret|env|credential|token|password)/i;
 const SELF_DIR_RE = /[\\/]develop[\\/]Fold_?(?:[\\/]|$)/i;
 
 export interface FileEntry {
@@ -57,7 +58,11 @@ export function buildObsidianUri(filePath: string, vault: string, roots: string[
   return `obsidian://open?vault=${encodeURIComponent(v)}&file=${encodePath(rel)}`;
 }
 
-function readMdMeta(abs: string): { title?: string; tags?: string[] } {
+/**
+ * 读 .md 前 4KB 的元数据（标题 / 标签 / frontmatter created）
+ * - B1 起用于文件浏览；B3 整理复用同一套解析，不再另写一份
+ */
+export function readMdMeta(abs: string): { title?: string; tags?: string[]; created?: string; fm_title?: string } {
   let head = "";
   try {
     const fd = fs.openSync(abs, "r");
@@ -68,16 +73,23 @@ function readMdMeta(abs: string): { title?: string; tags?: string[] } {
   } catch { return {}; }
   const title = head.match(/^#\s+(.+)$/m)?.[1]?.trim();
   const tags: string[] = [];
+  let created: string | undefined;
+  let fmTitle: string | undefined;
   const fm = head.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (fm) {
     for (const line of fm[1].split(/\r?\n/)) {
       const t = line.match(/^tags\s*:\s*\[(.*)\]$/i)?.[1];
-      if (t) tags.push(...t.split(",").map((s) => s.trim().replace(/^["'#]|["']$/g, "")).filter(Boolean));
+      // inline 写法 tags: ["#course/x"] 与块写法要归一成同一个值（去掉引号与 # 前缀）
+      if (t) tags.push(...t.split(",").map((s) => s.trim().replace(/^["']|["']$/g, "").replace(/^#/, "")).filter(Boolean));
       const item = line.match(/^\s*-\s+["']?#([^"']+)["']?\s*$/);
       if (item && fm[1].includes("tags:")) tags.push(item[1].trim());
+      const c = line.match(/^created\s*:\s*["']?(\d{4}-\d{2}-\d{2})/i)?.[1];
+      if (c) created = c;
+      const ft = line.match(/^title\s*:\s*["']?(.+?)["']?\s*$/i)?.[1];
+      if (ft) fmTitle = ft.trim();
     }
   }
-  return { title, tags: Array.from(new Set(tags)).slice(0, 20) };
+  return { title, tags: Array.from(new Set(tags)).slice(0, 20), created, fm_title: fmTitle };
 }
 
 function walk(root: string, dir: string, out: FileEntry[]): void {

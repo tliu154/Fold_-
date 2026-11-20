@@ -1306,6 +1306,68 @@ button {
   margin-top: 16px;
 }
 
+/* ---------- 整理新笔记（二期 B3） ---------- */
+
+.lib-tidy-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.lib-tidy-info {
+  min-width: 0;
+  font-size: 13px;
+}
+
+.lib-tidy-info .muted {
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.lib-tidy-preview {
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.lib-tidy-list {
+  max-height: 40vh;
+  overflow-y: auto;
+  margin: 8px 0 12px;
+}
+
+.lib-tidy-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.lib-tidy-main {
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+}
+
+.lib-tidy-main .muted {
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.lib-tidy-main .lib-file-path {
+  display: block;
+  text-align: left;
+  max-width: 100%;
+  margin-top: 2px;
+}
+
 .lib-config textarea {
   font-family: var(--font-mono);
   font-size: 12px;

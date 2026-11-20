@@ -161,11 +161,11 @@ export const features: FeatureModule[] = [
   },
   {
     id: "git-tidy",
-    name: "暂存区整理（git）+ Obsidian「整理新笔记」按钮",
-    enabled: false,
-    status: "pending_clarify",
+    name: "暂存区整理（git）+ Obsidian「整理新笔记」按钮（B3）",
+    enabled: true,
+    status: "implemented",
     phase: "二期",
-    note: "下一轮：一次整理一次提交；B2 澄清门已定「只在测试库 git init」+「变更预览→点确认才执行」(本功能内弹框，非三期审批闸门)；Obsidian 松耦合；不做 OCR",
+    note: "B3 已实做：未整理目录(libraries.json 的 inboxDir，默认测试库\\未整理) → 按 frontmatter 标签映射目录(复用 A10 dirMap) + 重命名 YYYY-MM-DD_标题.md；三操作可逆且开关默认只开移动+重命名(打标签默认关)；先预览点确认才执行；一次整理=一次 git commit(hash+清单写 data/tidy-log.json)；有未提交改动则暂停；占用文件跳过并报告；git init 仅测试库；不调模型",
   },
 
   // ---- 三期 ----

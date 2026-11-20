@@ -36,7 +36,7 @@
 |---|---|---|---|
 | 知识库/项目库 文件浏览 + 进度看板（B1） | implemented | true | `src/lib/libraries.ts`/`files.ts`/`projects.ts`、`src/app/api/libraries/*`、`KnowledgeView.tsx` | B1 已实做：统一资源库配置 `data/libraries.json`(收敛 A8 检索白名单与 A10 导出，首次从旧配置迁移不删旧文件)；只读文件浏览(类型/目录筛选、md 前4KB取标题标签、排除密钥/隐藏、上限5000)；项目库 `STATUS.md` 进度看板(progress%+checkbox 只读、不猜 README)；**默认全指向 `D:\我的知识库测试`，零接触真实库**；不新增表；e2e 28/28 过 |
 | `obsidian://` 跳转（B2） | implemented | true | `src/lib/files.ts`(buildObsidianUri)、`src/lib/libraries.ts`(obsidianVault)、`KnowledgeView.tsx` | B2 已实做：库名可配(默认空→链接禁用并提示)、`.md` 省略扩展名、URL 编码、按最长匹配根算库内相对路径、越权/排除返回 null；files 与 meta 返回 `obsidian_uri`；纯只读不写文件、零接触真实库；`e2e-obsidian.mjs` 33/33 过 |
-| 暂存区整理（git）+ Obsidian「整理新笔记」按钮 | pending_clarify | false | 下一轮：一次整理一次提交；B2 澄清门已定「只在测试库 git init」+「变更预览→点确认才执行」(本功能内弹框，非三期审批闸门)；Obsidian 松耦合；不做 OCR |
+| 暂存区整理（git）+ 「整理新笔记」按钮（B3） | implemented | true | `src/lib/tidy.ts`、`src/app/api/tidy/*`、`KnowledgeView.tsx`、`src/lib/libraries.ts`(inboxDir/tidy) | B3 已实做：未整理目录(默认 `D:\我的知识库测试\未整理`，`inboxDir` 可配) → 按 frontmatter 标签映射目录(复用 A10 `resolveExportDir`) + 重命名 `YYYY-MM-DD_标题.md`，**不调模型**；三操作 `move`/`rename`/`tag` 全实现、默认只开移动+重命名；先预览点确认才执行；一次整理=一次 git commit(hash+清单写 `data/tidy-log.json`)；有未提交改动暂停(未整理目录本身除外)；占用文件跳过并报告；只处理 `.md`、非 md 与疑似密钥文件名跳过；`git init` 仅测试库；越出测试库 400 拒绝；`e2e-tidy.mjs` 63/63 过 |
 
 ## 三期
 
@@ -69,6 +69,14 @@
 
 ## 变更记录
 
+- 2026-11-20（二期 B3 暂存区整理 +「整理新笔记」按钮）：开工前按纪律读 plan/MODULES、
+  git 干净确认无重复实现。按已确认的 12 条规格实现：`inboxDir` 未整理目录（默认测试库\未整理）、
+  标签映射目录复用 A10 `resolveExportDir`、`YYYY-MM-DD_标题.md` 命名、三操作开关默认只开
+  移动+重命名、预览确认后执行、一次整理一次 git commit + `data/tidy-log.json`、脏工作区暂停、
+  占用跳过、git init 仅测试库、越权 400。`e2e-tidy.mjs` 63/63 过；十二套回归分批全过。
+  **踩坑**：① 改名后旧路径不存在，`git add -A -- <旧路径>` 报 pathspec → 只 add 存在的路径；
+  ② `tags: ["#course/x"]` 内联写法旧解析残留 `#` 前缀 → 目录映射全回落「笔记」，已归一化解析；
+  ③ 脏检查必须排除「未整理目录」（新文件天然未跟踪，否则永远无法整理）。
 - 2026-11-20（二期 B2 `obsidian://` 跳转）：开工前按纪律读 plan/MODULES 确认无重复实现；
   澄清门四项：本轮只做跳转（用户定）、测试库 git init 与变更确认弹框留下一轮、
   **库名由用户手动在 Obsidian 注册后填写**（AI 不改 `obsidian.json`）。

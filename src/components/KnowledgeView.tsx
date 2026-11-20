@@ -1,11 +1,13 @@
 "use client";
 
 /**
- * 知识库 / 项目库页（二期 B1，B2 增补 obsidian:// 跳转）
+ * 知识库 / 项目库页（二期 B1，B2 增补 obsidian:// 跳转，B3 增补「整理新笔记」）
  * - 两 tab：文件浏览（只读列表+筛选+元数据）/ 项目进度（STATUS.md 只读看板）
  * - B2：文件行「在 Obsidian 打开」链接；库名为空则禁用并提示；顶部可填写 Obsidian 库名
+ * - B3：文件浏览 tab 顶部显示未整理文件数 + 「整理新笔记」按钮；
+ *       点击只出变更预览，点「确认并整理」才真正移动/重命名（一次整理 = 一次 git commit）
  * - 下方「资源库配置」：统一配知识库目录/项目库目录，并收敛 A8 检索白名单与 A10 导出
- * - 不做：git 整理、整理新笔记按钮、OCR、编辑正文（后续轮次）
+ * - 不做：OCR、编辑正文、自动/定时整理（三期）
  */
 import { useCallback, useEffect, useState } from "react";
 
@@ -25,6 +27,24 @@ interface Config {
   exportVault: string;
   dirMap: Record<string, string>;
   obsidianVault?: string;
+  inboxDir?: string;
+  tidy?: { move: boolean; rename: boolean; tag: boolean };
+}
+interface TidyItem {
+  from: string; to: string; filename: string; dir: string;
+  title: string; tags: string[]; actions: string[];
+  status: "ready" | "skip"; reason?: string;
+}
+interface TidyStatus {
+  inbox: string; inboxExists: boolean; root: string;
+  options: { move: boolean; rename: boolean; tag: boolean };
+  repo: boolean; hasCommit: boolean; dirty: boolean; dirtyFiles: string[];
+  canRun: boolean; blockedReason: string | null;
+  counts: { total: number; ready: number; skipped: number };
+  last: { at: string; commit: string; count: number; message: string } | null;
+}
+interface TidyPreview extends TidyStatus {
+  items: TidyItem[];
 }
 
 type Tab = "files" | "projects";
@@ -44,6 +64,9 @@ export default function KnowledgeView() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [vaultInput, setVaultInput] = useState("");
+  const [tidy, setTidy] = useState<TidyStatus | null>(null);
+  const [tidyPreview, setTidyPreview] = useState<TidyPreview | null>(null);
+  const [tidyBusy, setTidyBusy] = useState(false);
 
   const loadFiles = useCallback(async () => {
     const q = new URLSearchParams();
@@ -68,8 +91,37 @@ export default function KnowledgeView() {
     setConfig((await res.json()).config ?? null);
   }, []);
 
-  useEffect(() => { loadFiles(); loadProjects(); loadConfig(); }, [loadFiles, loadProjects, loadConfig]);
+  const loadTidy = useCallback(async () => {
+    const res = await fetch("/api/tidy").catch(() => null);
+    if (!res?.ok) return;
+    setTidy(await res.json());
+  }, []);
+
+  useEffect(() => { loadFiles(); loadProjects(); loadConfig(); loadTidy(); }, [loadFiles, loadProjects, loadConfig, loadTidy]);
   useEffect(() => { if (config) setVaultInput(config.obsidianVault ?? ""); }, [config]);
+
+  async function openTidyPreview() {
+    setError(null); setNotice(null); setTidyBusy(true);
+    const res = await fetch("/api/tidy/preview", { method: "POST" }).catch(() => null);
+    setTidyBusy(false);
+    if (!res) { setError("请求失败"); return; }
+    const d = await res.json();
+    if (!res.ok) { setError(d.error ?? "预览失败"); return; }
+    setTidyPreview(d.preview as TidyPreview);
+  }
+
+  async function confirmTidy() {
+    setError(null); setNotice(null); setTidyBusy(true);
+    const res = await fetch("/api/tidy/run", { method: "POST" }).catch(() => null);
+    setTidyBusy(false);
+    if (!res) { setError("请求失败"); return; }
+    const d = await res.json();
+    if (!res.ok) { setError(d.error ?? "整理失败"); return; }
+    const r = d.result as { commit: string; count: number; moved: unknown[]; skipped: { reason: string }[] };
+    setNotice(`已整理 ${r.count} 个文件，已提交 git（${r.commit}）${r.skipped.length ? `，跳过 ${r.skipped.length} 个` : ""}`);
+    setTidyPreview(null);
+    loadFiles(); loadTidy();
+  }
 
   async function saveVault() {
     if (!config) return;
@@ -101,6 +153,8 @@ export default function KnowledgeView() {
       exportVault: config.exportVault,
       dirMap: config.dirMap,
       obsidianVault: config.obsidianVault ?? "",
+      inboxDir: config.inboxDir ?? "",
+      tidy: config.tidy ?? { move: true, rename: true, tag: false },
     }, null, 2));
     setEditing(true); setError(null);
   }
@@ -129,7 +183,7 @@ export default function KnowledgeView() {
   return (
     <section>
       <h1 className="view-title">知识库 / 项目库</h1>
-      <p className="view-desc">只读浏览知识库文件与项目进度（STATUS.md）。不预览正文、不编辑、不做 OCR；不会写入任何文件。</p>
+      <p className="view-desc">浏览知识库文件与项目进度（STATUS.md）。日常浏览纯只读；「整理新笔记」会按标签把未整理目录里的 .md 移到正确目录并在知识库做一次 git 提交（可回滚）。不预览正文、不编辑、不做 OCR。</p>
       {config && !config.obsidianVault && (
         <p className="muted">尚未填写 Obsidian 库名，「在 Obsidian 打开」链接已禁用；请在下方填写（需先在 Obsidian 里把测试库注册为 vault）。</p>
       )}
@@ -146,6 +200,85 @@ export default function KnowledgeView() {
 
       {tab === "files" && (
         <div className="panel lib-block">
+          <div className="lib-tidy-bar">
+            <div className="lib-tidy-info">
+              <strong>未整理：{tidy?.counts.total ?? 0} 个文件</strong>
+              <div className="muted">
+                {tidy?.inbox ?? "D:\\我的知识库测试\\未整理"}
+                {tidy && ` · 移动${tidy.options.move ? "✓" : "✗"} 重命名${tidy.options.rename ? "✓" : "✗"} 打标签${tidy.options.tag ? "✓" : "✗"}`}
+              </div>
+              {tidy && tidy.counts.skipped > 0 && (
+                <div className="muted">其中 {tidy.counts.skipped} 个将跳过（不覆盖、不猜格式）</div>
+              )}
+              {tidy?.last && (
+                <div className="muted">上次整理：{tidy.last.count} 个文件 · commit {tidy.last.commit}</div>
+              )}
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={openTidyPreview}
+              disabled={tidyBusy}
+            >
+              {tidyBusy ? "处理中…" : "整理新笔记"}
+            </button>
+          </div>
+          {tidy?.blockedReason && !tidyPreview && (
+            <p className="muted">{tidy.blockedReason}</p>
+          )}
+          {tidy?.dirty && (
+            <p className="form-error">
+              知识库有未提交改动（如 {tidy.dirtyFiles[0]}），先提交或还原再整理，避免混进同一次 commit。
+            </p>
+          )}
+
+          {tidyPreview && (
+            <div className="lib-tidy-preview">
+              <h2 className="settings-h2">变更预览（确认前不会改动任何文件）</h2>
+              <p className="muted">
+                共 {tidyPreview.counts.total} 个文件，可执行 {tidyPreview.counts.ready} 个、跳过 {tidyPreview.counts.skipped} 个。
+                确认后一次性执行并做一次 git commit（可在知识库里 git revert 回滚）。
+                {!tidyPreview.repo && " 该知识库还不是 git 仓库，本次会先 git init（仅测试库）。"}
+              </p>
+              {tidyPreview.dirty && (
+                <p className="form-error">有未提交改动：{tidyPreview.dirtyFiles.slice(0, 3).join("；")}</p>
+              )}
+              {tidyPreview.items.length === 0 ? (
+                <p className="muted">未整理目录里没有文件。</p>
+              ) : (
+                <div className="lib-tidy-list">
+                  {tidyPreview.items.map((i) => (
+                    <div key={i.from} className="lib-tidy-row">
+                      <div className="lib-tidy-main">
+                        <strong>{i.filename}</strong>
+                        <div className="muted">
+                          {i.status === "ready" ? `→ ${i.dir}` : `跳过：${i.reason}`}
+                          {i.tags.length > 0 && ` · ${i.tags.map((t) => `#${t}`).join(" ")}`}
+                        </div>
+                        <code className="muted lib-file-path">{i.from}</code>
+                      </div>
+                      <div className="capture-item-tags">
+                        {i.actions.map((a) => <span key={a} className="tag">{a}</span>)}
+                        {i.status === "skip" && <span className="tag">跳过</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={confirmTidy}
+                  disabled={!tidyPreview.canRun || tidyBusy}
+                >
+                  {tidyBusy ? "整理中…" : `确认并整理（${tidyPreview.counts.ready}）`}
+                </button>
+                <button type="button" className="btn" onClick={() => setTidyPreview(null)} disabled={tidyBusy}>取消</button>
+              </div>
+            </div>
+          )}
+
           <div className="lib-obsidian-bar">
             <label className="muted" htmlFor="obsidian-vault">Obsidian 库名</label>
             <input

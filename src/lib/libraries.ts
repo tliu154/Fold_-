@@ -1,10 +1,12 @@
 /**
- * 统一资源库配置（二期 B1，B2 增补 obsidianVault）
- * - 一份 data/libraries.json 统一管理：知识库目录(多个)、项目库目录、检索白名单、导出目标、Obsidian 库名
+ * 统一资源库配置（二期 B1，B2 增补 obsidianVault，B3 增补 inboxDir + tidy）
+ * - 一份 data/libraries.json 统一管理：知识库目录(多个)、项目库目录、检索白名单、导出目标、Obsidian 库名、未整理暂存区
  * - 收敛 A8(index-config.json) 与 A10(capture-config.json)：首次若旧文件存在则读入一次，不删旧文件
  * - 不新增表；配置存本地 JSON（data/ 已被 git 忽略）
  * - 默认全部指向测试目录，绝不碰真实知识库（用户 2026-11-20 明确要求）
  * - B2：obsidianVault 默认空串（不擅自猜库名），用户注册 vault 后自行填写；空串时跳转链接禁用
+ * - B3：inboxDir = 未整理暂存区（默认 D:\我的知识库测试\未整理）；
+ *       tidy 三种可逆操作的开关，默认只开「移动 + 重命名」，「打标签」默认关闭
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -12,6 +14,14 @@ import { getDataDir } from "./config";
 
 export const TEST_VAULT = "D:\\我的知识库测试";
 export const TEST_PROJECTS = "D:\\我的知识库测试\\项目库";
+export const TEST_INBOX = "D:\\我的知识库测试\\未整理";
+
+/** B3：整理时可执行的三种可逆操作（打标签默认关闭） */
+export interface TidyOptions {
+  move: boolean;
+  rename: boolean;
+  tag: boolean;
+}
 
 export interface LibrariesConfig {
   version: 1;
@@ -21,6 +31,8 @@ export interface LibrariesConfig {
   exportVault: string;       // A10 导出目标（收敛）
   dirMap: Record<string, string>; // A10 导出目录映射（收敛）
   obsidianVault: string;     // B2：Obsidian 库名（obsidian:// 跳转用，默认为空）
+  inboxDir: string;          // B3：未整理暂存区（只处理这里的「新文件」）
+  tidy: TidyOptions;         // B3：三种可逆操作开关
   updated_at: string | null;
 }
 
@@ -38,6 +50,8 @@ function defaults(): LibrariesConfig {
       "course/": "课件和教材", "topic/": "笔记", "source/": "资源库", "type/": "笔记",
     },
     obsidianVault: "",
+    inboxDir: TEST_INBOX,
+    tidy: { move: true, rename: true, tag: false },
     updated_at: null,
   };
 }
@@ -77,6 +91,13 @@ export function getLibraries(): LibrariesConfig {
         exportVault: typeof parsed.exportVault === "string" ? parsed.exportVault : d.exportVault,
         dirMap: parsed.dirMap && typeof parsed.dirMap === "object" ? parsed.dirMap : d.dirMap,
         obsidianVault: typeof parsed.obsidianVault === "string" ? parsed.obsidianVault : d.obsidianVault,
+        // B3：旧配置没有这两个字段 → 用默认值（打标签仍默认关闭）
+        inboxDir: typeof parsed.inboxDir === "string" && parsed.inboxDir.trim() ? parsed.inboxDir : d.inboxDir,
+        tidy: {
+          move: typeof parsed.tidy?.move === "boolean" ? parsed.tidy.move : d.tidy.move,
+          rename: typeof parsed.tidy?.rename === "boolean" ? parsed.tidy.rename : d.tidy.rename,
+          tag: typeof parsed.tidy?.tag === "boolean" ? parsed.tidy.tag : d.tidy.tag,
+        },
         updated_at: typeof parsed.updated_at === "string" ? parsed.updated_at : null,
       };
     }

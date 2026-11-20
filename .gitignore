@@ -29,3 +29,4 @@ Thumbs.db
 # Next 生成文件
 next-env.d.ts
 .vercel
+tsconfig.tsbuildinfo
