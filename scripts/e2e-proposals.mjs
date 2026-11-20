@@ -106,14 +106,42 @@ function diffSnapshot(a, b) {
   const A = new Set(a.split("\n")), B = new Set(b.split("\n"));
   return `新增=${JSON.stringify([...B].filter((x) => !A.has(x)).slice(0, 4))} 消失=${JSON.stringify([...A].filter((x) => !B.has(x)).slice(0, 4))}`;
 }
+/** 删除文件/目录：Node 删不动（只读或批量删除保护）时回落 Windows 原生命令 */
+function forceRemove(p) {
+  let isDir = false;
+  try { isDir = fs.statSync(p).isDirectory(); } catch { return; }
+  try { fs.rmSync(p, { recursive: true, force: true }); if (!fs.existsSync(p)) return; } catch {}
+  const win = p.replace(/\//g, "\\");
+  try {
+    if (isDir) execFileSync("cmd", ["/c", "rmdir", "/S", "/Q", win], { windowsHide: true });
+    else execFileSync("cmd", ["/c", "del", "/F", "/Q", win], { windowsHide: true });
+  } catch {}
+}
 function cleanVault() {
   if (!fs.existsSync(TEST)) return;
   for (const name of fs.readdirSync(TEST)) {
     if (name === ".git") continue;
-    try { fs.rmSync(path.join(TEST, name), { recursive: true, force: true }); } catch {}
+    forceRemove(path.join(TEST, name));
   }
 }
-function killGit() { try { fs.rmSync(path.join(TEST, ".git"), { recursive: true, force: true }); } catch {} }
+/** git 对象只读：先递归去只读再删，仍失败则系统强删回落（复用 e2e-reports 的 rmGit 思路） */
+function killGit() {
+  const dir = path.join(TEST, ".git");
+  if (!fs.existsSync(dir)) return;
+  const unreadonly = (d) => {
+    let names = [];
+    try { names = fs.readdirSync(d); } catch { return; }
+    for (const n of names) {
+      const p = path.join(d, n);
+      let st; try { st = fs.statSync(p); } catch { continue; }
+      if (st.isDirectory()) unreadonly(p);
+      else { try { fs.chmodSync(p, 0o666); } catch {} }
+    }
+  };
+  unreadonly(dir);
+  try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
+  if (fs.existsSync(dir)) forceRemove(dir);
+}
 function fixture(name, frontmatter) {
   const p = path.join(INBOX, name);
   fs.mkdirSync(path.dirname(p), { recursive: true });

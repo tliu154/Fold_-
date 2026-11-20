@@ -36,36 +36,17 @@ import {
   type InternalFile, type FileSubtype,
 } from "./internal-vault";
 import { createMessage } from "./messages";
+import { getFilingRules, ruleForExt, type FilingRule } from "./filing-rules";
+// 兼容旧引用：规则表已迁到 filing-rules.ts（可配文件 + 默认常量），避免 settings.ts 循环依赖
+export { DEFAULT_FILING_RULES } from "./filing-rules";
+export type { FilingRule } from "./filing-rules";
 
-/* ---------------- 整理规范（可配置规则表） ---------------- */
-
-export interface FilingRule {
-  id: string;
-  label: string;
-  /** 命中的扩展名（小写，含点）；空数组 = 兜底全匹配 */
-  exts: string[];
-  /** 用于 resolveExportDir 推出目标目录的标签 */
-  tags: string[];
-  /** 分类说明（展示在提案里，让用户看懂为什么这么分） */
-  note: string;
-}
-
-/** 默认规范：TS 常量。第 2 轮 L0/L1 通道接入后可由设置页覆盖 */
-export const DEFAULT_FILING_RULES: FilingRule[] = [
-  { id: "html", label: "网页 / 周报", exts: [".html", ".htm"],
-    tags: ["type/周报"], note: "HTML 不读正文、不改内容，按类型归档并在网页里可回顾" },
-  { id: "md", label: "Markdown 笔记", exts: [".md", ".markdown"],
-    tags: ["type/笔记"], note: "可读前 4KB frontmatter；缺标题/标签时由程序补全" },
-  { id: "image", label: "图片", exts: [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"],
-    tags: ["source/资源库"], note: "只登记元数据，不做 OCR / 不读内容" },
-  { id: "doc", label: "文档 / 表格 / PDF", exts: [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".csv"],
-    tags: ["source/资源库"], note: "只登记元数据，不做解析 / 不读内容" },
-  { id: "other", label: "其它格式", exts: [],
-    tags: ["type/资料"], note: "管家按整理规范兜底归类；不猜内容、不改文件" },
-];
+/* ---------------- 整理规范（C3 第 2 轮：改为可配规则表） ---------------- */
+// 规则表已迁到 filing-rules.ts（可配文件 + 默认常量）。
+// 改规则后：已生成但还没批准的内部库提案不受影响（建议已固化），下次预览才用新规则。
 
 function ruleFor(ext: string): FilingRule {
-  return DEFAULT_FILING_RULES.find((r) => r.exts.includes(ext)) ?? DEFAULT_FILING_RULES[DEFAULT_FILING_RULES.length - 1];
+  return ruleForExt(ext, getFilingRules());
 }
 
 /** 允许的目标目录集合：dirMap 的值 + 回落目录「笔记」 */
@@ -233,7 +214,7 @@ export function previewFiling(): FilingPreview {
 
   const skipped = items.filter((i) => !i.enabled).length;
   return {
-    unsorted, root, dirMap, allowedDirs: dirs, rules: DEFAULT_FILING_RULES,
+    unsorted, root, dirMap, allowedDirs: dirs, rules: getFilingRules(),
     counts: { total: items.length, ready: items.length - skipped, skipped },
     items,
     pending: listFilingProposals().pending,

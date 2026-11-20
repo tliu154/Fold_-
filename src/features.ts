@@ -203,6 +203,22 @@ export const features: FeatureModule[] = [
     note: "C3：所有新增文件先入 data/internal-vault/未分类/，全格式登记；.md 补 frontmatter、其它格式只读元数据不改内容；整理规范为可配规则表（AI 辅助分类留第 2 轮）；批准后从内部库移动到用户加入的库（开发阶段=测试库）",
   },
   {
+    id: "file-tree",
+    name: "树状文件管理器 + 加库 + 系统打开（C3 第 2 轮）",
+    enabled: true,
+    status: "implemented",
+    phase: "三期",
+    note: "文件浏览改 Obsidian 式紧凑树（折叠/引导线/hover 详情），去掉格式分类栏与目录筛选；文件单击双击都打开（.md/.html/.htm/.pdf→Obsidian，其它→系统默认应用），文件夹单击折叠、双击开资源管理器；拖拽单文件自动存内部库暂存区；加库=添加库根目录，只影响浏览与检索范围，写入目标仍锁测试库；系统打开走服务端带鉴权接口 + 路径按段白名单校验",
+  },
+  {
+    id: "ai-settings",
+    name: "AI 个性化设置通道 L0/L1（一句话改设置）",
+    enabled: true,
+    status: "implemented",
+    phase: "三期",
+    note: "管家=懂接口的人，替代手动改复杂配置；所有自定义设置手动+管家双通道，极简开关可只保留手动。L0 注册表 4 项（整理规范/周报数据源/手动重点/打开方式）schema+校验+影响范围，写死开关与 AI 通道共用校验；L1 一句话→逐条草案→编辑勾选→校验→确认生效，草案不落库不发消息，敏感项拦截回显，模型失败如实标注；改动历史复用 items(type=setting_history) + 一键回滚（覆盖较新值需二次确认）；不新增表",
+  },
+  {
     id: "news-feed",
     name: "资讯订阅（Qwen 内置联网搜索）",
     enabled: false,

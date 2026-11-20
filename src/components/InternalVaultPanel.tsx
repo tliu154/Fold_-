@@ -8,6 +8,7 @@
  * - HTML 等格式只登记外部元数据、不动内容；.md 才可能补 frontmatter
  */
 import { useCallback, useEffect, useState } from "react";
+import AiSettingsBox from "./AiSettingsBox";
 
 interface FilingItem {
   from: string; file_id: string; filename: string; dir: string; title: string;
@@ -145,6 +146,12 @@ export default function InternalVaultPanel() {
       </div>
 
       {notice && <p className="form-notice">{notice}</p>}
+
+      <AiSettingsBox
+        title="用一句话改整理规范"
+        hint="管家懂规则表接口：可以说「把 .txt 也归到笔记」「图片统一放资源库」。改完只影响下次预览，已生成但还没批准的提案不变。"
+        onApplied={load}
+      />
 
       {preview ? (
         <div className="iv-preview">

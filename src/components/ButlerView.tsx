@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useState } from "react";
 import EmptyState from "./EmptyState";
 import CapturePanel from "./CapturePanel";
+import AiSettingsBox from "./AiSettingsBox";
 
 const QUICK = [
   "今天有什么待办？",
@@ -23,6 +24,7 @@ interface Session { id: string; title: string; message_count: number; }
 
 export default function ButlerView() {
   const [sessionMode, setSessionMode] = useState(false);
+  const [settingsMode, setSettingsMode] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -111,10 +113,23 @@ export default function ButlerView() {
 
       <div className="todo-toolbar">
         <span className="muted">{sessionMode ? `会话模式 · ${session?.title ?? "新会话"}` : "无状态模式 · 问答不落库"}</span>
-        <button type="button" className="btn btn-sm" onClick={toggleSession}>
-          {sessionMode ? "结束会话" : "开会话（复杂任务）"}
-        </button>
+        <div className="butler-toolbar-actions">
+          <button type="button" className={`btn btn-sm ${settingsMode ? "btn-primary" : ""}`}
+            onClick={() => setSettingsMode((v) => !v)}>
+            {settingsMode ? "收起改设置" : "改设置（一句话）"}
+          </button>
+          <button type="button" className="btn btn-sm" onClick={toggleSession}>
+            {sessionMode ? "结束会话" : "开会话（复杂任务）"}
+          </button>
+        </div>
       </div>
+
+      {settingsMode && (
+        <AiSettingsBox
+          title="管家改设置（可一次跨多个功能）"
+          hint="管家懂网站的接口，专门用来替代手动改那些复杂配置。说一句话出草案，逐条看、改、勾选后确认才生效；本轮支持整理规范 / 周报数据源 / 手动重点 / 打开方式。"
+        />
+      )}
 
       {error && <p className="form-error">{error}</p>}
 

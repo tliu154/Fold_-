@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useState } from "react";
 import ProposalPanel from "./ProposalPanel";
 import ReportSourcesPanel from "./ReportSourcesPanel";
+import AiSettingsBox from "./AiSettingsBox";
 
 interface Message {
   id: string; kind: string; title: string; body: string;
@@ -70,6 +71,7 @@ function emptyDraft(): Draft {
 
 export default function SchedulerView() {
   const [tab, setTab] = useState<"messages" | "proposals" | "sources">("messages");
+  const [srcVer, setSrcVer] = useState(0);
   const [messages, setMessages] = useState<Message[]>([]);
   const [unread, setUnread] = useState(0);
   const [filter, setFilter] = useState<"all" | "unread">("all");
@@ -367,7 +369,14 @@ export default function SchedulerView() {
       ) : tab === "proposals" ? (
         <ProposalPanel />
       ) : (
-        <ReportSourcesPanel />
+        <>
+          <ReportSourcesPanel key={srcVer} />
+          <AiSettingsBox
+            title="用一句话改周报数据源"
+            hint="管家懂数据源开关接口：可以说「关掉 git 提交、把笔记变更打开」「帮我加一条本周重点」。生成草案后确认才生效。"
+            onApplied={() => setSrcVer((v) => v + 1)}
+          />
+        </>
       )}
     </section>
   );

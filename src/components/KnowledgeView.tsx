@@ -7,13 +7,17 @@
  * - B3：文件浏览 tab 顶部显示未整理文件数 + 「整理新笔记」按钮；
  *       点击只出变更预览，点「确认并整理」才真正移动/重命名（一次整理 = 一次 git commit）
  * - C2：整理区并排「生成提案预览」→ 提案预览不落库 → 保存后发站内消息，等你批准才动文件
- * - C3：新增「内部库」tab —— 程序内部库未分类区的全格式整理（提案 → 批准 → 分流）
- * - 下方「资源库配置」：统一配知识库目录/项目库目录，并收敛 A8 检索白名单与 A10 导出
- * - 不做：OCR、编辑正文、自动整理（B3 手动确认 / C2 用户批准才执行）
+ * - C3 第 1 轮：新增「内部库」tab —— 程序内部库未分类区的全格式整理（提案 → 批准 → 分流）
+ * - C3 第 2 轮：文件浏览改树状紧凑 UI（去格式分类栏/目录筛选、hover 显详情、单击双击打开、
+ *   双击文件夹开资源管理器、拖拽入暂存区）；加库 = 添加库根目录；就地「用一句话改设置」
+ * - 不做：OCR、编辑正文、自动整理（B3 手动确认 / C2 用户批准才执行）、搜索（已登记 PRD §9.5）
  */
 import { useCallback, useEffect, useState } from "react";
 import ProposalGenerator from "./ProposalGenerator";
 import InternalVaultPanel from "./InternalVaultPanel";
+import FileTree from "./FileTree";
+import LibraryVaults from "./LibraryVaults";
+import AiSettingsBox from "./AiSettingsBox";
 
 interface FileEntry {
   path: string; name: string; ext: string; size: number; mtime: string;
@@ -59,8 +63,6 @@ export default function KnowledgeView() {
   const [dirs, setDirs] = useState<string[]>([]);
   const [total, setTotal] = useState(0);
   const [truncated, setTruncated] = useState(false);
-  const [kind, setKind] = useState("all");
-  const [dir, setDir] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
   const [config, setConfig] = useState<Config | null>(null);
   const [editing, setEditing] = useState(false);
@@ -74,15 +76,13 @@ export default function KnowledgeView() {
   const [proposalOpen, setProposalOpen] = useState(false);
 
   const loadFiles = useCallback(async () => {
-    const q = new URLSearchParams();
-    if (kind !== "all") q.set("kind", kind);
-    if (dir) q.set("dir", dir);
-    const res = await fetch(`/api/libraries/files?${q.toString()}`).catch(() => null);
+    // 树状浏览要整棵树：一次取满 500（后端上限），不再按格式/目录筛选
+    const res = await fetch("/api/libraries/files?limit=500").catch(() => null);
     if (!res?.ok) return;
     const d = await res.json();
     setFiles(d.files ?? []); setDirs(d.dirs ?? []);
     setTotal(d.total ?? 0); setTruncated(Boolean(d.truncated));
-  }, [kind, dir]);
+  }, []);
 
   const loadProjects = useCallback(async () => {
     const res = await fetch("/api/libraries/projects").catch(() => null);
@@ -179,12 +179,6 @@ export default function KnowledgeView() {
     loadFiles(); loadProjects();
   }
 
-  function fmtSize(n: number) {
-    if (n < 1024) return `${n} B`;
-    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-    return `${(n / 1024 / 1024).toFixed(1)} MB`;
-  }
-
   return (
     <section>
       <h1 className="view-title">知识库 / 项目库</h1>
@@ -199,7 +193,7 @@ export default function KnowledgeView() {
           <button type="button" className={`seg-btn ${tab === "projects" ? "active" : ""}`} onClick={() => setTab("projects")}>项目进度</button>
           <button type="button" className={`seg-btn ${tab === "internal" ? "active" : ""}`} onClick={() => setTab("internal")}>内部库</button>
         </div>
-        <button type="button" className="btn btn-sm" onClick={startEdit}>配置目录</button>
+        <button type="button" className="btn btn-sm" onClick={startEdit}>高级配置</button>
       </div>
       {error && <p className="form-error">{error}</p>}
       {notice && <p className="form-notice">{notice}</p>}
@@ -313,39 +307,12 @@ export default function KnowledgeView() {
             />
             <button type="button" className="btn btn-sm" onClick={saveVault}>保存库名</button>
           </div>
-          <div className="lib-filters">
-            <div className="seg">
-              {[
-                ["all", "全部"], ["md", "Markdown"], ["pdf", "PDF"], ["html", "HTML"], ["doc", "Word"], ["other", "其它"],
-              ].map(([k, label]) => (
-                <button key={k} type="button" className={`seg-btn ${kind === k ? "active" : ""}`} onClick={() => setKind(k)}>{label}</button>
-              ))}
-            </div>
-            <select className="input" value={dir} onChange={(e) => setDir(e.target.value)} aria-label="目录筛选">
-              <option value="">全部目录</option>
-              {dirs.map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
-          <p className="muted">共 {total} 个文件{truncated ? `（显示前 ${files.length} 个）` : ""}</p>
-          <div className="lib-files">
-            {files.length === 0 ? <p className="muted">该范围内没有文件</p> : files.map((f) => (
-              <div key={f.path} className="lib-file-row">
-                <div className="lib-file-main">
-                  <strong>{f.title || f.name}</strong>
-                  <div className="muted">{f.dir} · {f.ext} · {fmtSize(f.size)} · {new Date(f.mtime).toLocaleDateString("zh-CN")}</div>
-                  {f.tags && f.tags.length > 0 && (
-                    <div className="capture-item-tags">{f.tags.map((t) => <span key={t} className="tag">#{t}</span>)}</div>
-                  )}
-                  {f.obsidian_uri ? (
-                    <a className="lib-open-link" href={f.obsidian_uri}>在 Obsidian 打开 →</a>
-                  ) : (
-                    <span className="muted lib-open-disabled" title="请先填写 Obsidian 库名">未配置库名</span>
-                  )}
-                </div>
-                <code className="muted lib-file-path">{f.path}</code>
-              </div>
-            ))}
-          </div>
+          <FileTree files={files} total={total} truncated={truncated} onRefresh={loadFiles} />
+          <AiSettingsBox
+            title="用一句话改设置（打开方式 / 整理规范 / 周报数据源）"
+            hint="管家懂网站的接口：可以直接说「把 PDF 改成用系统应用打开」「关掉 git 提交这个数据源」。生成草案后逐条确认才生效。"
+            onApplied={loadFiles}
+          />
         </div>
       )}
 
@@ -373,6 +340,14 @@ export default function KnowledgeView() {
       )}
 
       {tab === "internal" && <InternalVaultPanel />}
+
+      {config && (
+        <LibraryVaults
+          config={config}
+          onChanged={(c) => { setConfig(c); loadFiles(); loadProjects(); }}
+          onEditAdvanced={startEdit}
+        />
+      )}
 
       {editing && (
         <div className="panel lib-config">
