@@ -42,7 +42,8 @@
 
 | 模块 | 状态 | enabled | 说明 |
 |---|---|---|---|
-| 定时任务 + 审批闸门 + 站内消息 | pending_clarify | false | 常驻后台、错过不补跑；提案→批准才执行（限打标签/移动/重命名） |
+| 定时任务调度 + 站内消息（C1） | implemented | true | `src/lib/scheduler.ts`、`messages.ts`、`cron.ts`、`instrumentation.ts`、`/api/scheduler/*`、`/api/messages`、`SchedulerView.tsx` | C1 已实做：node-cron 每 60 秒盘点 + 启动错过盘点（不补跑只记次数）；配置/运行态两份 JSON；消息复用 `items(type=message)` 不新增表；三内置任务纯程序填数不调模型；自然语言解析 1 次 `callStructured` 只预览、确认才保存；**不动系统启动项**；AI 评述留周报轮次；`e2e-scheduler.mjs` 75/75 过 |
+| 审批闸门（AI 提案 → 用户批准才执行） | pending_clarify | false | C1 澄清门拆出、本轮不做；后续可复用 B3 变更预览 + git 回滚，限打标签/移动/重命名三种可逆操作 |
 | 周报草稿 + 数据源开关面板 | pending_clarify | false | 模板骨架 + 程序填数 + AI 评述 |
 | 资讯订阅（Qwen 内置联网） | pending_clarify | false | 一期不做 RSS；资讯只走 Qwen |
 | GLM / Qwen 接入（三模型路由补齐） | pending_clarify | false | 二/三期验证后插 |
@@ -69,6 +70,18 @@
 
 ## 变更记录
 
+- 2026-11-20（三期 C1 定时任务调度 + 站内消息）：两轮澄清门 + 16 条规格复述确认；
+  用户追加「模型调用能跑通就行」→ 只 1 次最小真实调用验解析链路。
+  **不动系统**：instrumentation → cron.ts 用 node-cron 每 60 秒 runTick()；
+  启动盘点错过次数、不补跑。数据不新增表：scheduler.json / scheduler-state.json /
+  items(type=message)。三内置任务纯程序填数、AI 评述留占位；自然语言解析复用
+  callStructured 只预览不落库。页面 SchedulerView + 侧栏「站内消息」未读徽标；
+  start-server.bat + README 说明手动启动、不写注册表/任务计划/服务。
+  `e2e-scheduler.mjs` 75/75 过；十三套既有回归分三批全过。
+  **踩坑**：① node-cron CJS dynamic import default 类型兼容；② 真实库
+  `.obsidian/workspace.json` 由 Obsidian 自己改写，零接触快照须排除 `.obsidian`；
+  ③ 已修 e2e-libraries / e2e-obsidian 两处「假设测试库只有自己 fixture」的脆弱断言
+  （连续跑多套会互相误伤，改为只校验自己创建的文件）。
 - 2026-11-20（二期 B3 暂存区整理 +「整理新笔记」按钮）：开工前按纪律读 plan/MODULES、
   git 干净确认无重复实现。按已确认的 12 条规格实现：`inboxDir` 未整理目录（默认测试库\未整理）、
   标签映射目录复用 A10 `resolveExportDir`、`YYYY-MM-DD_标题.md` 命名、三操作开关默认只开

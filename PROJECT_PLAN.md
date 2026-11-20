@@ -207,7 +207,34 @@ v0.6 清单要的是「**本机轻量个人 AI 指挥台：整合 + 调度 + 自
   （butler 首次 13/14 是真实模型波动，单跑 14/14）。
   **踩坑**：① 改名后原路径已不存在，`git add -A -- <旧路径>` 报 pathspec → 只 add 仍存在的路径；
   ② inline 写法 `tags: ["#course/x"]` 旧解析残留 `#` 前缀导致目录映射全部回落「笔记」→ 解析归一化。
+- ✅ **三期 C1 定时任务调度 + 站内消息已实做**（2026-11-20）：澄清门两轮，用户按推荐全选并确认
+  16 条规格；另明确「模型调用能跑通就行」→ 只保留 **1 次最小真实调用**验解析链路，其余全 mock。
+  **不动系统**（不写注册表/任务计划/服务、不放开权限、不迁移项目）：`src/instrumentation.ts` →
+  `src/lib/cron.ts` 用已装 `node-cron` 每 60 秒 `runTick()`，启动即盘点。
+  - 数据**不新增表**：`data/scheduler.json`(配置) + `data/scheduler-state.json`(运行态 last_run_at /
+    last_settled_at / missed_count，原子替换)；站内消息复用 `items` 表 `type=message`，
+    payload={kind,title,body,read,source}，软删除复用 `deleted_at`。
+  - 触发：页面「立即运行」+ 自定义定时；结构化下拉(每天/每周几/几点) + 自然语言输入
+    （复用已有 `callStructured` 解析成同一份配置，**只预览、确认才 PUT 保存**）。
+  - P4 不补跑：tick 算 (last_settled_at, now] 的应跑时刻，最新一个距今 ≤5 分钟才执行一次，
+    更早的全部累加 missed_count；启动/盘点生成一条 `kind=missed` 汇总站内消息；
+    用 `last_settled_at` 推进结算点避免重复累计。
+  - 三内置任务（纯程序填数，**不调模型**、AI 评述留占位给周报轮次）：每日重点(待办/日程/打卡)、
+    未整理目录巡检(复用 B3 `countInboxMd()` 只读计数，**绝不自动整理**)、每周数据小结
+    (待办完成/打卡/日程/整理次数，复用 B3 `listTidyLog()`)。
+  - 接口 `/api/scheduler`(GET/PUT)、`/run`、`/parse`、`/tick`(内部盘点，与 cron 同一 `runTick`)、
+    `/api/messages`(GET/PATCH/DELETE)；页面 `SchedulerView.tsx`（消息列表+未读+已读/删除 与 定时任务区），
+    侧栏新增「站内消息」+ 未读徽标；`scripts/start-server.bat` 手动启动脚本 + README 说明。
+  - **验收**：`e2e-scheduler.mjs` **75/75 过**（含 1 次真实模型解析「每周五晚上 9 点」→ weekly/5/21:00、
+    解析不落库、错过不补跑证据、等 66 秒验证 cron 自动 tick、真实库零接触）；
+    十三套既有回归分三批全过。
+  - **踩坑**：① `node-cron` 是 CJS，dynamic import 的 default 需单独兼容类型；
+    ② 真实库 `.obsidian/workspace.json` 由 Obsidian 常驻进程每几十秒改写，
+    「零接触」快照必须排除 `.obsidian`，否则外部程序误伤断言；
+    ③ 既有 `e2e-libraries`/`e2e-obsidian` 断言假设「测试库只有自己的 fixture」，
+    连续跑多套时互相误伤 → 改为只校验自己创建的文件（已修）。
 - ⏭️ 下一步：二期只剩「未整理区」大愿景（多格式 + 管家按规范分类 + 用户批准），
-  本质是 B3 + 三期审批闸门的组合，届时走澄清门重新设计；或直接进三期（定时任务 / 审批闸门 / 周报 / Qwen 资讯）。
+  本质是 B3 + 三期审批闸门的组合；或直接按 C1 锁定顺序继续三期：
+  **审批闸门 → 周报+数据源面板 → Qwen 资讯 → GLM/Qwen 路由补齐**（每轮仍单独走澄清门）。
 - 每个用户可见功能开工前仍严格走清单 3.1 五步，不跳过。
 - 备注（用户 2026-11-19）：op 队列 / 审批台 / 快照 / 审计在四期移动端可能需要，先记下，届时重新设计。

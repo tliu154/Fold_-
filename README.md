@@ -109,6 +109,22 @@ node scripts/e2e-obsidian.mjs  # obsidian:// 跳转 33 项（只操作测试库�
 - 预算：`AI_MONTHLY_BUDGET`（元，0 = 不限）
 - Obsidian：`OBSIDIAN_VAULT_PATH`（二期，留空不影响其它功能）
 
+## 定时任务与常驻（三期 C1）
+
+- **调度跑在 Next.js 进程内**：`src/instrumentation.ts` 启动时注册 `node-cron`，每 60 秒盘点一次。
+  任务配置 `data/scheduler.json`、运行态 `data/scheduler-state.json`（`data/` 不进 Git）。
+- **不写任何系统启动项**：本项目不建注册表项、不建 Windows 任务计划、不装服务、不放开权限。
+  服务没开就不跑；重新打开后按「错过不补跑」规则只累计次数，并生成一条站内消息汇总。
+- **手动启动**：先 `npm run build`（需系统 Node 24），再双击 `scripts/start-server.bat`
+  或在项目根目录 `npm run start`。窗口关掉 / 电脑重启后服务就停了，这是预期行为。
+- 想自己实现开机自启：把 `scripts/start-server.bat` 的快捷方式放进
+  `shell:startup`（Win+R 输入）。这是用户手动操作，本项目不会代做。
+- **站内消息**在侧栏「站内消息」页：未读计数、全部/未读筛选、标记已读、删除；
+  同页下方是定时任务配置（增删改、立即运行、结构化选时、自然语言解析预览→确认才保存）。
+- 自然语言解析会调 **1 次** DeepSeek 结构化输出；模型不可用时会明确提示改用结构化选时，
+  不会假装成功。三个内置任务本身纯程序填数，**不调用模型**；AI 评述留到周报轮次。
+- 验收脚本：`node scripts/e2e-scheduler.mjs`（需先启动服务）。
+
 ## 分期（v0.6 第九节）
 
 | 期 | 范围 |

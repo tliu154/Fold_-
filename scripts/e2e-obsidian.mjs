@@ -176,7 +176,10 @@ async function main() {
   // 清理 fixture（保留测试库目录本身）
   for (const f of fixtures) { try { fs.unlinkSync(f); } catch {} }
   for (const d of ["笔记", "课件和教材", ".obsidian"]) { try { fs.rmdirSync(path.join(TEST_POSIX, d)); } catch {} }
-  ok("测试库 fixture 已清理", allFiles(TEST_POSIX).length === 0, String(allFiles(TEST_POSIX).length));
+  // 只校验本脚本创建的 fixture 已删除：测试库里可能有其它脚本残留或用户自己放的文件，
+  // 连续跑多套 e2e 时不应因此假失败（也不该去删别人的文件）
+  ok("本脚本 fixture 已清理", fixtures.every((f) => !fs.existsSync(f)),
+    JSON.stringify(fixtures.filter((f) => fs.existsSync(f))));
 
   console.log(`\n结果：${passed} 通过，${failed} 失败`);
   process.exit(failed > 0 ? 1 : 0);

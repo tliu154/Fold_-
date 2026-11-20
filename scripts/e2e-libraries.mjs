@@ -99,7 +99,13 @@ async function main() {
 
   // 筛选
   const pdf = await api("/api/libraries/files?kind=pdf");
-  ok("按 kind=pdf 筛选", pdf.data.files?.length === 1 && pdf.data.files[0].ext === ".pdf", JSON.stringify(pdf.data.files));
+  // 连续跑多套 e2e 时测试库可能有其它脚本残留的 pdf（用户也可能自己放文件），
+  // 因此只校验「筛选结果全是 pdf 且包含本脚本 fixture」，不假设全库只有自己的文件
+  ok("按 kind=pdf 筛选（结果全为 pdf 且含本脚本 fixture）",
+    (pdf.data.files ?? []).length >= 1
+      && (pdf.data.files ?? []).every((f) => f.ext === ".pdf")
+      && (pdf.data.files ?? []).some((f) => f.name === "讲义.pdf"),
+    JSON.stringify(pdf.data.files));
   const byDir = await api(`/api/libraries/files?dir=${encodeURIComponent("课件和教材")}`);
   ok("按目录筛选", byDir.data.files?.length >= 1 && byDir.data.files.every((f) => f.dir.startsWith("课件和教材")), JSON.stringify(byDir.data.files));
 

@@ -22,9 +22,10 @@ import MemorySettings from "./MemorySettings";
 import IndexSettings from "./IndexSettings";
 import ButlerView from "./ButlerView";
 import KnowledgeView from "./KnowledgeView";
+import SchedulerView from "./SchedulerView";
 import type { FeatureModule } from "@/features";
 
-type Page = "home" | "records" | "chat" | "assistant" | "knowledge" | "settings";
+type Page = "home" | "records" | "chat" | "assistant" | "knowledge" | "messages" | "settings";
 type RecordTab = "todo" | "event" | "checkin" | "memo" | "goal";
 
 const NAV: { key: Page; label: string; phase: string }[] = [
@@ -33,6 +34,7 @@ const NAV: { key: Page; label: string; phase: string }[] = [
   { key: "chat", label: "AI 对话", phase: "一期" },
   { key: "assistant", label: "AI 管家", phase: "一期" },
   { key: "knowledge", label: "知识库", phase: "二期" },
+  { key: "messages", label: "站内消息", phase: "三期" },
   { key: "settings", label: "设置", phase: "骨架" },
 ];
 
@@ -49,6 +51,7 @@ export default function AppShell() {
   const [page, setPage] = useState<Page>("home");
   const [recordTab, setRecordTab] = useState<RecordTab>("todo");
   const [features, setFeatures] = useState<FeatureModule[] | null>(null);
+  const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,6 +67,19 @@ export default function AppShell() {
       .catch(() => {});
     return () => { cancelled = true; };
   }, [router]);
+
+  // C1：侧栏未读徽标。定时消息由后台生成，页面切换 + 每 20 秒刷新一次
+  useEffect(() => {
+    let cancelled = false;
+    const load = () => {
+      fetch("/api/messages?filter=unread")
+        .then(async (res) => { if (res.ok && !cancelled) setUnread((await res.json()).unread ?? 0); })
+        .catch(() => {});
+    };
+    load();
+    const timer = setInterval(load, 20_000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [page]);
 
   function openRecords(tab: RecordTab) {
     setRecordTab(tab);
@@ -81,6 +97,7 @@ export default function AppShell() {
           {page === "chat" && <ChatView />}
           {page === "assistant" && <ButlerView />}
           {page === "knowledge" && <KnowledgeView />}
+          {page === "messages" && <SchedulerView />}
           {page === "settings" && <SettingsPage features={features} />}
         </div>
       </main>
@@ -98,7 +115,10 @@ export default function AppShell() {
               className={`side-nav-item ${page === item.key ? "active" : ""}`}
               onClick={() => setPage(item.key)}
             >
-              <span>{item.label}</span>
+              <span>
+                {item.label}
+                {item.key === "messages" && unread > 0 && <span className="nav-badge">{unread}</span>}
+              </span>
               <span className="nav-phase">{item.phase}</span>
             </button>
           ))}

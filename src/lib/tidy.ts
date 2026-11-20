@@ -182,6 +182,24 @@ export function getLastTidy(): TidyLogRecord | null {
   return readLog()[0] ?? null;
 }
 
+/** C1：供「每周数据小结」统计整理次数（只读，不触发整理） */
+export function listTidyLog(): TidyLogRecord[] {
+  return readLog();
+}
+
+/** C1：供「未整理目录巡检」只读统计待整理 .md（绝不自动整理、不 init git、不写文件） */
+export function countInboxMd(): { dir: string; exists: boolean; md: string[] } {
+  const inbox = getInboxDir();
+  const exists = fs.existsSync(inbox) && fs.statSync(inbox).isDirectory();
+  const raw: string[] = [];
+  if (exists) walkInbox(inbox, raw);
+  const md = raw
+    .filter((f) => !EXCLUDE_NAME_RE.test(path.basename(f)))
+    .filter((f) => path.extname(f).toLowerCase() === ".md")
+    .map((f) => path.basename(f));
+  return { dir: inbox, exists, md };
+}
+
 function appendLog(record: TidyLogRecord): void {
   const dir = getDataDir();
   fs.mkdirSync(dir, { recursive: true });

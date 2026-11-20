@@ -171,11 +171,19 @@ export const features: FeatureModule[] = [
   // ---- 三期 ----
   {
     id: "scheduler",
-    name: "定时任务 + 审批闸门 + 站内消息汇报",
+    name: "定时任务调度 + 站内消息（C1）",
+    enabled: true,
+    status: "implemented",
+    phase: "三期",
+    note: "C1 已实做：node-cron 每 60 秒盘点、启动即错过盘点（不补跑只记次数）；配置 scheduler.json + 运行态 scheduler-state.json；站内消息复用 items(type=message) 不新增表；三内置任务(每日重点/未整理巡检/每周小结)纯程序填数不调模型；自然语言定时描述调 1 次 callStructured 只预览、确认才保存；不动系统启动项、AI 评述留周报轮次",
+  },
+  {
+    id: "approval-gate",
+    name: "审批闸门（AI 提案 → 用户批准才执行）",
     enabled: false,
     status: "pending_clarify",
     phase: "三期",
-    note: "常驻后台；错过不补跑；AI 提案→批准才执行（限打标签/移动/重命名）",
+    note: "C1 澄清门已拆出、本轮不做；后续可复用 B3 变更预览 + git 回滚，限打标签/移动/重命名三种可逆操作",
   },
   {
     id: "weekly-report",
