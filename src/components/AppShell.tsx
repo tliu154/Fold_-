@@ -21,6 +21,7 @@ import HomeDashboard from "./HomeDashboard";
 import MemorySettings from "./MemorySettings";
 import IndexSettings from "./IndexSettings";
 import ButlerView from "./ButlerView";
+import KnowledgeView from "./KnowledgeView";
 import type { FeatureModule } from "@/features";
 
 type Page = "home" | "records" | "chat" | "assistant" | "knowledge" | "settings";
@@ -79,9 +80,7 @@ export default function AppShell() {
           )}
           {page === "chat" && <ChatView />}
           {page === "assistant" && <ButlerView />}
-          {page === "knowledge" && (
-            <SimplePage title="知识库" desc="知识库 / 项目库看板 + 文件浏览器（二期）" />
-          )}
+          {page === "knowledge" && <KnowledgeView />}
           {page === "settings" && <SettingsPage features={features} />}
         </div>
       </main>

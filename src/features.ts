@@ -145,11 +145,11 @@ export const features: FeatureModule[] = [
   // ---- 二期 ----
   {
     id: "knowledge-base",
-    name: "知识库 / 项目库看板 + 文件浏览器 + obsidian:// 跳转",
-    enabled: false,
-    status: "pending_clarify",
+    name: "知识库 / 项目库 文件浏览 + 进度看板（B1）",
+    enabled: true,
+    status: "implemented",
     phase: "二期",
-    note: "项目进度读项目根 STATUS.md；不做 OCR",
+    note: "B1 已实做：统一资源库配置(收敛A8检索/A10导出)、只读文件浏览(类型/目录筛选+md元数据)、项目库 STATUS.md 进度看板；默认全指向测试库不碰真实库；不做 obsidian://跳转/git/OCR/编辑正文",
   },
   {
     id: "git-tidy",

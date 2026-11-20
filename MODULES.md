@@ -34,7 +34,8 @@
 
 | 模块 | 状态 | enabled | 说明 |
 |---|---|---|---|
-| 知识库 / 项目库 + 文件浏览器 + `obsidian://` 跳转 | pending_clarify | false | 项目进度读 `STATUS.md`；不做 OCR |
+| 知识库/项目库 文件浏览 + 进度看板（B1） | implemented | true | `src/lib/libraries.ts`/`files.ts`/`projects.ts`、`src/app/api/libraries/*`、`KnowledgeView.tsx` | B1 已实做：统一资源库配置 `data/libraries.json`(收敛 A8 检索白名单与 A10 导出，首次从旧配置迁移不删旧文件)；只读文件浏览(类型/目录筛选、md 前4KB取标题标签、排除密钥/隐藏、上限5000)；项目库 `STATUS.md` 进度看板(progress%+checkbox 只读、不猜 README)；**默认全指向 `D:\我的知识库测试`，零接触真实库**；不新增表；e2e 28/28 过 |
+| `obsidian://` 跳转 + 暂存区整理(git) + 整理按钮 | pending_clarify | false | 后续轮次：一次整理一次提交；Obsidian 松耦合、审批后执行可逆操作；不做 OCR |
 | 暂存区整理（git）+ Obsidian「整理新笔记」按钮 | pending_clarify | false | 一次整理一次提交；Obsidian 松耦合、审批后执行可逆操作 |
 
 ## 三期
@@ -68,6 +69,10 @@
 
 ## 变更记录
 
+- 2026-11-20（二期 B1 知识库/项目库 文件浏览+进度看板）：按用户要求先全改测试库
+  （A8 白名单→`D:\我的知识库测试`；三份配置全指向测试库，真实库零接触）；统一资源库配置
+  收敛 A8/A10；只读文件浏览 + STATUS.md 进度看板。`e2e-libraries.mjs` 28/28 过，
+  十套既有回归全过。**用户一度要迁移项目到 D:/+放开权限，最终决定不迁移不放权。**
 - 2026-11-20（一期 A10「记下来」收窄版）：按轮次勾选+一键存主库+AI建议+幂等回填+
   待分类列表+手动整理+预览导出 .md 到测试知识库；e2e 39/39 过、九套回归全过。
   **期间踩坑**：① `npm run build && npm run start` 串联时 build 被沙箱 safe-delete 拦下

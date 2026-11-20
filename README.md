@@ -9,16 +9,17 @@
 底层骨架：
 - Next.js 15 + TypeScript + better-sqlite3 + zod，PWA 壳
 - 建表（4 张：items / memory / ai_messages / ai_usage）、登录鉴权（HMAC Cookie + Bearer）
-- 实做路由：`/api/health`、`/api/auth/login`、`/api/auth/logout`、`/api/features`、`/api/todos/*`、`/api/events/*`、`/api/habits/*`、`/api/checkins/*`、`/api/goals/*`、`/api/chat/*`、`/api/memory/*`、`/api/index/*`、`/api/butler/ask`、`/api/capture/*`
+- 实做路由：`/api/health`、`/api/auth/login`、`/api/auth/logout`、`/api/features`、`/api/todos/*`、`/api/events/*`、`/api/habits/*`、`/api/checkins/*`、`/api/goals/*`、`/api/chat/*`、`/api/memory/*`、`/api/index/*`、`/api/butler/ask`、`/api/capture/*`、`/api/libraries/*`
 - **一期 A2 待办 / A3 日程 / A4 打卡已实做**：存 `items` 表（`type=todo` / `event` / `habit` / `checkin`），增删改查 + 软删除/回收站恢复
 - **A5 长期目标已实做**：存本地配置 `data/goals.json`，**不进 SQLite 主库**（清单 P13 手填）
 - **A6 AI 对话基础已实做**：DeepSeek-Flash 一次性返回；临时模式 Stateless 不落库、普通模式多会话 + 最近 10 轮上下文；会话壳存 `memory` 表、消息存 `ai_messages`，不新增表
 - **A7 三层记忆 + 映射表已实做**：基础身份 / 功能记忆 / 临时上下文（复用对话历史）；预设模板 + 设置页编辑；映射表 TS 常量 + 可覆盖；A6 普通模式自动注入、临时模式不注入；记忆带标签可筛选；复用 `memory` 表不新增表
-- **A8 function calling 检索工具已实做**：只索引 `.md` 元数据（不读正文）、白名单设置页可配（默认 `D:\我的知识库`）；三个只读函数 `search_notes` / `get_note` / `stats`；A6 普通模式两阶段调用链（最多 3 轮）、临时模式不挂；内存索引不新增表
+- **A8 function calling 检索工具已实做**：只索引 `.md` 元数据（不读正文）、白名单设置页可配（**2026-11-20 起默认 `D:\我的知识库测试`，不碰真实库**）；三个只读函数 `search_notes` / `get_note` / `stats`；A6 普通模式两阶段调用链（最多 3 轮）、临时模式不挂；内存索引不新增表
 - **A9 AI 管家独立页已实做**：管家/秘书身份只处理站内问题、超范围婉拒；4 快捷按钮填入输入框；简单问答无状态不落库、复杂任务复用 A6 会话壳；assistant 映射 + A8 工具；不新增表
 - **A10「记下来」已实做（收窄版）**：对话/管家页按轮次勾选、一键存主库 `items`（type=note）；AI 建议标题+标签；幂等+回填 `saved_as_item_id`；会话内待分类列表、手动整理、预览确认后导出 `.md` 到可配置知识库（默认测试库 `D:\我的知识库测试`，不碰真实库）；绝不自动/批量；不新增表
 - **首页改版**：单列从上到下 5 个实内容分区（待办 / 日程 / 打卡 / 长期目标 / 备忘录占位），垂直滚动；每区最多 5 条 + 「查看全部 →」跳 tab；标题旁 **+ 号**弹框新增、**点条目**弹框编辑并带删除按钮；打卡弹框内两 tab（新建习惯 / 随手记一条）
-- **入口架构**：侧栏「记录与规划」一个导航项，内部五 tab 切 待办 / 日程 / 打卡 / 备忘录 / **长期目标**（保留不动）；侧栏另有独立「AI 对话」项，「AI 管家」保留占位
+- **二期 B1 已实做**：知识库/项目库页（只读文件浏览：类型/目录筛选 + `.md` 元数据；项目库 `STATUS.md` 进度看板）；统一资源配置 `data/libraries.json`（收敛 A8 检索白名单与 A10 导出，首次从旧配置迁移不删旧文件）；默认全指向 `D:\我的知识库测试`，真实库零接触；不做 obsidian:// 跳转/git/OCR/编辑正文
+- **入口架构**：侧栏「记录与规划」一个导航项，内部五 tab 切 待办 / 日程 / 打卡 / 备忘录 / **长期目标**（保留不动）；侧栏另有独立「AI 对话」/「AI 管家」/「知识库」项
 - 简约 UI：右侧栏 + 点击切页（侧栏），首页内部为滚动分区
 - 模块注册表 `features.ts`（按 v0.6 分期）+ 数据源适配器接口 + `MODULES.md`
 - API 探针脚本 `scripts/probe-api.mjs`（开工第一步，已实测通过）
@@ -87,7 +88,10 @@ node scripts/e2e-memory.mjs    # 三层记忆 29 项（含 1 次真实模型调�
 node scripts/e2e-index.mjs     # 检索工具 24 项（含真实模型调用工具）
 node scripts/e2e-butler.mjs    # AI 管家 14 项（含真实模型调用）
 node scripts/e2e-capture.mjs   # 记下来 39 项（含 2 次真实模型调用；写测试库测完清理）
+node scripts/e2e-libraries.mjs # 知识库/项目库 28 项（只操作测试库，测完清理）
 ```
+
+注意：登录限流 10 次/60 秒，**不要一口气连跑十几个脚本**，否则后面的会因 429 假失败。
 
 覆盖未登录 401 / 新增 / 字段回读 / 完成切换或日期分组或连续天数 / 筛选 / 编辑 /
 软删除 / 回收站 / 恢复 / 参数校验 / 配置文件落盘 / 会话隔离与上下文 /
