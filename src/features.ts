@@ -118,12 +118,20 @@ export const features: FeatureModule[] = [
     note: "A8 已实做：只索引 .md 元数据(不读正文)、白名单可配、启动建一次+手动刷新；三个只读函数 search_notes/get_note/stats；普通模式两阶段调用链(最多3轮)、临时模式不挂；内存索引不新增表",
   },
   {
+    id: "butler",
+    name: "AI 管家独立页",
+    enabled: true,
+    status: "implemented",
+    phase: "一期",
+    note: "A9 已实做：管家/秘书身份只处理站内问题、超范围婉拒；4 快捷按钮填入输入框；简单问答无状态不落库、复杂任务复用 A6 会话壳；assistant 映射 + A8 工具；不新增表",
+  },
+  {
     id: "ai-chat",
-    name: "管家页 / 记下来",
+    name: "「记下来」按钮",
     enabled: false,
     status: "placeholder",
     phase: "一期",
-    note: "A9~A10 待做：管家无状态问答、手动「记下来」",
+    note: "A10 待做：手动「记下来」，存网站主库 + #source/网页AI",
   },
   {
     id: "save-note",

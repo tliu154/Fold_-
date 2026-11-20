@@ -1222,6 +1222,28 @@ button {
   overflow-y: auto;
 }
 
+/* ---------- AI 管家（一期 A9） ---------- */
+
+.butler-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 6px;
+}
+
+.butler-quick .btn {
+  white-space: normal;
+  text-align: left;
+}
+
+.butler-quick-hint {
+  margin-bottom: 16px;
+}
+
+.butler-main {
+  max-width: 100%;
+}
+
 /* ---------- 笔记索引设置（一期 A8） ---------- */
 
 .index-block {

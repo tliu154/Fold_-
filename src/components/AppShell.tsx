@@ -20,6 +20,7 @@ import ChatView from "./ChatView";
 import HomeDashboard from "./HomeDashboard";
 import MemorySettings from "./MemorySettings";
 import IndexSettings from "./IndexSettings";
+import ButlerView from "./ButlerView";
 import type { FeatureModule } from "@/features";
 
 type Page = "home" | "records" | "chat" | "assistant" | "knowledge" | "settings";
@@ -77,9 +78,7 @@ export default function AppShell() {
             <RecordsPage tab={recordTab} setTab={setRecordTab} />
           )}
           {page === "chat" && <ChatView />}
-          {page === "assistant" && (
-            <SimplePage title="AI 管家" desc="管家/秘书身份，只处理站内问题；常用功能做成按钮（A9 实现）" />
-          )}
+          {page === "assistant" && <ButlerView />}
           {page === "knowledge" && (
             <SimplePage title="知识库" desc="知识库 / 项目库看板 + 文件浏览器（二期）" />
           )}

@@ -6,6 +6,8 @@
  * - 清空 = 清空该会话消息但保留会话壳
  * - 模型：DeepSeek-Flash，OpenAI 兼容 chat/completions，一次性返回（不做 SSE）
  * - A7：普通模式按 chat 映射注入三层记忆的 ①② 到 system；临时模式不注入
+ * - A8：普通模式挂三个只读检索工具（function calling），临时模式不挂
+ * - A9：butlerSystem 非空切换为管家模式（assistant 映射 + 工具），A6 调用不受影响
  * - 结构化输出：本期只预留 callStructured 能力，不落地调用（分类/提案属后续功能）
  * - 不做：ai_usage 记账 / 月度预算 / AI 专用限流（v0.6 未要求）
  */
@@ -303,6 +305,8 @@ export async function sendMessage(input: {
   mode: "temp" | "normal";
   session_id?: string;
   message: string;
+  /** A9 管家身份 system；非空时启用管家模式（assistant 映射 + 工具），不传则 A6 行为不变 */
+  butlerSystem?: string;
 }): Promise<ChatResult & {
   session_id: string | null;
   memory_applied: boolean;
@@ -310,10 +314,22 @@ export async function sendMessage(input: {
 }> {
   const text = input.message.trim();
   if (!text) throw new Error("消息不能为空");
+  const isButler = Boolean(input.butlerSystem);
+  const feature = isButler ? "assistant" : "chat";
 
   if (input.mode === "temp") {
-    const r = await callChat([{ role: "user", content: text }]);
-    return { ...r, session_id: null, memory_applied: false, tools_used: [] };
+    // A6 临时模式原样：不注入、不挂工具、不落库
+    if (!isButler) {
+      const r = await callChat([{ role: "user", content: text }]);
+      return { ...r, session_id: null, memory_applied: false, tools_used: [] };
+    }
+    // A9 管家无状态问答：注入管家身份 + assistant 记忆 + 工具，但不落库
+    const sys = [input.butlerSystem, buildSystemPrompt(feature)].filter(Boolean).join("\n");
+    const r = await callChatWithTools([
+      { role: "system", content: sys },
+      { role: "user", content: text },
+    ]);
+    return { ...r, session_id: null, memory_applied: true, tools_used: r.tools_used };
   }
 
   const sessionId = input.session_id ?? createSession().id;
@@ -321,7 +337,8 @@ export async function sendMessage(input: {
 
   insertMessage(sessionId, "user", text);
   const context = buildContext(sessionId);
-  const system = buildSystemPrompt("chat");
+  const memory = buildSystemPrompt(feature);
+  const system = [input.butlerSystem, memory].filter(Boolean).join("\n");
   const messages = system
     ? [{ role: "system", content: system }, ...context]
     : context;
@@ -330,7 +347,7 @@ export async function sendMessage(input: {
   return {
     ...r,
     session_id: sessionId,
-    memory_applied: Boolean(system),
+    memory_applied: Boolean(memory),
     tools_used: r.tools_used,
   };
 }
