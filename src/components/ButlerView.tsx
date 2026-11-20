@@ -9,6 +9,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import EmptyState from "./EmptyState";
+import CapturePanel from "./CapturePanel";
 
 const QUICK = [
   "今天有什么待办？",
@@ -29,10 +30,17 @@ export default function ButlerView() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/chat/sessions").then((r) => r.json()).then((d) => {
-      // 只展示最近一个会话作为「当前会话」，不列全量（管家页保持简单）
+    fetch("/api/chat/sessions").then((r) => r.json()).then(async (d) => {
       const list = d.sessions ?? [];
-      if (list[0]) { setSession(list[0]); }
+      if (list[0]) {
+        setSession(list[0]);
+        const msgRes = await fetch(`/api/chat/sessions/${list[0].id}/messages`).then((r) => r.json()).catch(() => ({}));
+        if (Array.isArray(msgRes.messages)) {
+          setMessages((msgRes.messages as { id: string; role: string; content: string }[])
+            .filter((m) => m.role === "user" || m.role === "assistant")
+            .map((m) => ({ id: m.id, role: m.role as "user" | "assistant", content: m.content })));
+        }
+      }
     }).catch(() => {});
   }, []);
 
@@ -72,11 +80,21 @@ export default function ButlerView() {
         setMessages((m) => m.filter((x) => !x.id.startsWith("u-")));
         return;
       }
-      setMessages((m) => [...m, { id: `a-${Date.now()}`, role: "assistant", content: d.reply }]);
-      if (sessionMode) {
+      if (sessionMode && session) {
+        // 拉真实消息（含服务端 id），供「记下来」按轮次勾选
+        const msgRes = await fetch(`/api/chat/sessions/${session.id}/messages`).then((r) => r.json()).catch(() => ({}));
+        if (Array.isArray(msgRes.messages)) {
+          setMessages((msgRes.messages as { id: string; role: string; content: string }[])
+            .filter((m) => m.role === "user" || m.role === "assistant")
+            .map((m) => ({ id: m.id, role: m.role as "user" | "assistant", content: m.content })));
+        } else {
+          setMessages((m) => [...m, { id: `a-${Date.now()}`, role: "assistant", content: d.reply }]);
+        }
         const listRes = await fetch("/api/chat/sessions").then((r) => r.json()).catch(() => ({ sessions: [] as Session[] }));
         const fresh = ((listRes.sessions ?? []) as Session[]).find((s) => s.id === session?.id);
         if (fresh) setSession(fresh);
+      } else {
+        setMessages((m) => [...m, { id: `a-${Date.now()}`, role: "assistant", content: d.reply }]);
       }
     } catch {
       setError("网络不可用或管家调用失败");
@@ -99,6 +117,8 @@ export default function ButlerView() {
       </div>
 
       {error && <p className="form-error">{error}</p>}
+
+      {sessionMode && session && <CapturePanel sessionId={session.id} messages={messages} />}
 
       <div className="butler-quick">
         {QUICK.map((q) => (

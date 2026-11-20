@@ -126,20 +126,12 @@ export const features: FeatureModule[] = [
     note: "A9 已实做：管家/秘书身份只处理站内问题、超范围婉拒；4 快捷按钮填入输入框；简单问答无状态不落库、复杂任务复用 A6 会话壳；assistant 映射 + A8 工具；不新增表",
   },
   {
-    id: "ai-chat",
-    name: "「记下来」按钮",
-    enabled: false,
-    status: "placeholder",
-    phase: "一期",
-    note: "A10 待做：手动「记下来」，存网站主库 + #source/网页AI",
-  },
-  {
     id: "save-note",
     name: "「记下来」按钮（存网站主库 + #source/网页AI）",
-    enabled: false,
-    status: "placeholder",
+    enabled: true,
+    status: "implemented",
     phase: "一期",
-    note: "手动触发，绝不自动 / 批量存",
+    note: "A10 已实做(收窄版)：对话/管家页按轮次勾选、一键存主库 items(type=note)、AI 建议标题标签、幂等+回填 saved_as_item_id、会话内待分类列表、手动整理、预览后导出 .md 到可配置知识库(默认测试库)；绝不自动/批量；不新增表",
   },
   {
     id: "api-probe",

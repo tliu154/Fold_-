@@ -48,6 +48,7 @@ export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
   created_at: string;
+  saved_as_item_id: string | null; // A10「记下来」回填，便于追溯
 }
 
 function nowIso(): string {
@@ -164,6 +165,7 @@ export function listMessages(sessionId: string): ChatMessage[] {
     role: (r.role === "user" || r.role === "assistant" || r.role === "system" ? r.role : "user") as ChatMessage["role"],
     content: r.content ?? "",
     created_at: r.created_at,
+    saved_as_item_id: r.saved_as_item_id ?? null,
   }));
 }
 

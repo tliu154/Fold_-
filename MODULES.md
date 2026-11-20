@@ -28,7 +28,7 @@
 | 三层记忆 + 功能映射表 | implemented | true | `src/lib/memory.ts`、`src/app/api/memory/*`、`src/components/MemorySettings.tsx` | A7 已实做：三层=基础身份(profile)/功能记忆(feature:chat)/临时上下文(复用 A6 最近10轮)；预设模板懒初始化 + 设置页编辑；映射表 TS 常量默认 + `memory` 表覆盖供设置页改；记忆带 tags 可按标签筛选；普通模式按 chat 映射注入 system、临时模式不注入；与 `chat_session` scope 隔离，**不新增表**；本期仅 chat 生效，assistant/capture/report 留预留条目；e2e 29/29 过 |
 | function calling 检索工具（.md 索引） | implemented | true | `src/lib/indexer.ts`、`src/app/api/index/*`、`src/components/IndexSettings.tsx` | A8 已实做：只索引 `.md` 元数据(路径/标题/标签/mtime，不读正文)，只读前4KB；白名单存 `data/index-config.json` 设置页可改，默认 `D:\我的知识库`；排除密钥文件/隐藏目录/项目自身；内存索引启动建一次+手动刷新；三只读函数 `search_notes`/`get_note`/`stats`；普通模式两阶段调用链(最多3轮)、临时模式不挂；**不新增表**；e2e 24/24 过（含真实模型调用工具） |
 | AI 管家独立页 | implemented | true | `src/lib/butler.ts`、`src/app/api/butler/ask`、`src/components/ButlerView.tsx` | A9 已实做：管家/秘书身份只处理站内问题、超范围婉拒；4 快捷按钮(填入输入框不自动发)；简单问答 Stateless 不落库、复杂任务「开会话」复用 A6 `chat_session` 带上下文；assistant 功能记忆映射 + A8 三工具；`sendMessage` 加 `butlerSystem` 开关(A6 行为不变)；**不新增表**；e2e 14/14 过（含真实模型调用） |
-| 「记下来」按钮 | placeholder | false | — | A10 待做：手动「记下来」，存网站主库 + `#source/网页AI`，绝不自动/批量 |
+| 「记下来」按钮（收窄版） | implemented | true | `src/lib/capture.ts`、`src/app/api/capture/*`、`src/components/CapturePanel.tsx` | A10 已实做：对话/管家页按轮次勾选、一键存主库 `items`(`type=note`，不新增表)；点记下来时调一次 AI 出标题+标签建议；固定 `#type/笔记`+`#source/网页AI`；同会话+同批消息幂等、回填 `saved_as_item_id`；会话内展开待分类列表、手动整理转 done；导出前预览确认后写 `.md`，知识库根可配(默认 `D:\我的知识库测试`)，不碰真实库；绝不自动/批量；e2e 39/39 过 |
 
 ## 二期
 
@@ -68,6 +68,12 @@
 
 ## 变更记录
 
+- 2026-11-20（一期 A10「记下来」收窄版）：按轮次勾选+一键存主库+AI建议+幂等回填+
+  待分类列表+手动整理+预览导出 .md 到测试知识库；e2e 39/39 过、九套回归全过。
+  **期间踩坑**：① `npm run build && npm run start` 串联时 build 被沙箱 safe-delete 拦下
+  但 start 仍起旧 .next → 断言假失败，须分开 build/start 且 build 用越权；
+  ② `resolveExportDir` 按 tags 遍历导致固定 `type/笔记` 抢先命中，改为按 dirMap 优先级；
+  ③ 文件名 slice 截出半截分钟，改为显式 YYYYMMDD_HHMM。
 - 2026-11-20（一期 A9 AI 管家独立页）：开工前先读 plan 确认无重复实现；实做管家身份+
   范围婉拒、4 快捷按钮、Stateless/会话双模式(复用 A6 壳)、assistant 映射+A8 工具。
   `e2e-butler.mjs` 14/14 过；八套回归全过。

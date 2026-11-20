@@ -1222,6 +1222,105 @@ button {
   overflow-y: auto;
 }
 
+/* ---------- 记下来（一期 A10） ---------- */
+
+.capture-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--bg-panel);
+}
+
+.capture-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.capture-toolbar-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.capture-rounds {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 10px;
+  max-height: 130px;
+  overflow-y: auto;
+}
+
+.capture-round {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.capture-round input {
+  accent-color: var(--accent);
+}
+
+.capture-list {
+  margin-top: 10px;
+}
+
+.capture-item {
+  border-top: 1px solid var(--border);
+  padding: 10px 0;
+}
+
+.capture-item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.capture-item-date {
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+.capture-item-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.capture-item-tags .tag {
+  font-size: 11px;
+  padding: 1px 6px;
+}
+
+.capture-item-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.capture-dialogue {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  font-size: 12px;
+}
+
+.capture-dialogue pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 180px;
+  overflow-y: auto;
+  margin: 6px 0 0;
+}
+
 /* ---------- AI 管家（一期 A9） ---------- */
 
 .butler-quick {

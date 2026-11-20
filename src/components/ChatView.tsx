@@ -8,6 +8,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import EmptyState from "./EmptyState";
+import CapturePanel from "./CapturePanel";
 
 type Mode = "temp" | "normal";
 interface Session {
@@ -168,6 +169,8 @@ export default function ChatView() {
       </div>
 
       {error && <p className="form-error">{error}</p>}
+
+      {mode === "normal" && activeId && <CapturePanel sessionId={activeId} messages={messages} />}
 
       <div className="chat-layout">
         {mode === "normal" && (
