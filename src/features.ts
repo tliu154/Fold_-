@@ -149,7 +149,15 @@ export const features: FeatureModule[] = [
     enabled: true,
     status: "implemented",
     phase: "二期",
-    note: "B1 已实做：统一资源库配置(收敛A8检索/A10导出)、只读文件浏览(类型/目录筛选+md元数据)、项目库 STATUS.md 进度看板；默认全指向测试库不碰真实库；不做 obsidian://跳转/git/OCR/编辑正文",
+    note: "B1 已实做：统一资源库配置(收敛A8检索/A10导出)、只读文件浏览(类型/目录筛选+md元数据)、项目库 STATUS.md 进度看板；默认全指向测试库不碰真实库；不做 git/OCR/编辑正文（obsidian:// 跳转已在 B2 实做）",
+  },
+  {
+    id: "obsidian-jump",
+    name: "`obsidian://` 跳转（B2）",
+    enabled: true,
+    status: "implemented",
+    phase: "二期",
+    note: "B2 已实做：libraries.json 加 obsidianVault(默认空)；buildObsidianUri 纯函数按最长匹配根算库内相对路径、.md 省略扩展名、URL 编码、越权/排除返回 null；files/meta 带 obsidian_uri；知识库页可填库名+禁用提示。不写文件、不碰真实库；e2e 33/33 过",
   },
   {
     id: "git-tidy",
@@ -157,7 +165,7 @@ export const features: FeatureModule[] = [
     enabled: false,
     status: "pending_clarify",
     phase: "二期",
-    note: "一次整理一次提交；Obsidian 松耦合、审批闸门后执行可逆操作",
+    note: "下一轮：一次整理一次提交；B2 澄清门已定「只在测试库 git init」+「变更预览→点确认才执行」(本功能内弹框，非三期审批闸门)；Obsidian 松耦合；不做 OCR",
   },
 
   // ---- 三期 ----

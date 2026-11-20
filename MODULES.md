@@ -35,8 +35,8 @@
 | 模块 | 状态 | enabled | 说明 |
 |---|---|---|---|
 | 知识库/项目库 文件浏览 + 进度看板（B1） | implemented | true | `src/lib/libraries.ts`/`files.ts`/`projects.ts`、`src/app/api/libraries/*`、`KnowledgeView.tsx` | B1 已实做：统一资源库配置 `data/libraries.json`(收敛 A8 检索白名单与 A10 导出，首次从旧配置迁移不删旧文件)；只读文件浏览(类型/目录筛选、md 前4KB取标题标签、排除密钥/隐藏、上限5000)；项目库 `STATUS.md` 进度看板(progress%+checkbox 只读、不猜 README)；**默认全指向 `D:\我的知识库测试`，零接触真实库**；不新增表；e2e 28/28 过 |
-| `obsidian://` 跳转 + 暂存区整理(git) + 整理按钮 | pending_clarify | false | 后续轮次：一次整理一次提交；Obsidian 松耦合、审批后执行可逆操作；不做 OCR |
-| 暂存区整理（git）+ Obsidian「整理新笔记」按钮 | pending_clarify | false | 一次整理一次提交；Obsidian 松耦合、审批后执行可逆操作 |
+| `obsidian://` 跳转（B2） | implemented | true | `src/lib/files.ts`(buildObsidianUri)、`src/lib/libraries.ts`(obsidianVault)、`KnowledgeView.tsx` | B2 已实做：库名可配(默认空→链接禁用并提示)、`.md` 省略扩展名、URL 编码、按最长匹配根算库内相对路径、越权/排除返回 null；files 与 meta 返回 `obsidian_uri`；纯只读不写文件、零接触真实库；`e2e-obsidian.mjs` 33/33 过 |
+| 暂存区整理（git）+ Obsidian「整理新笔记」按钮 | pending_clarify | false | 下一轮：一次整理一次提交；B2 澄清门已定「只在测试库 git init」+「变更预览→点确认才执行」(本功能内弹框，非三期审批闸门)；Obsidian 松耦合；不做 OCR |
 
 ## 三期
 
@@ -69,6 +69,15 @@
 
 ## 变更记录
 
+- 2026-11-20（二期 B2 `obsidian://` 跳转）：开工前按纪律读 plan/MODULES 确认无重复实现；
+  澄清门四项：本轮只做跳转（用户定）、测试库 git init 与变更确认弹框留下一轮、
+  **库名由用户手动在 Obsidian 注册后填写**（AI 不改 `obsidian.json`）。
+  实现：`libraries.json` 加 `obsidianVault`(默认空)、`buildObsidianUri` 纯函数
+  (最长匹配根算相对路径 / `.md` 省略扩展名 / 分段 URL 编码 / 越权与排除返回 null)、
+  files 与 meta 返回 `obsidian_uri`、知识库页库名输入框 + 链接禁用提示。
+  纯只读：不写文件、不 init git、不调模型、零接触真实库。
+  `e2e-obsidian.mjs` 33/33 过；十一套既有回归分两批跑全过（避开登录限流）。
+  顺手合并二期表里两行重复的 git 整理 placeholder。
 - 2026-11-20（二期 B1 知识库/项目库 文件浏览+进度看板）：按用户要求先全改测试库
   （A8 白名单→`D:\我的知识库测试`；三份配置全指向测试库，真实库零接触）；统一资源库配置
   收敛 A8/A10；只读文件浏览 + STATUS.md 进度看板。`e2e-libraries.mjs` 28/28 过，

@@ -1228,6 +1228,40 @@ button {
   padding: 12px 16px;
 }
 
+/* ---------- Obsidian 库名 / 跳转链接（二期 B2） ---------- */
+
+.lib-obsidian-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.lib-obsidian-bar .input {
+  max-width: 260px;
+}
+
+.lib-open-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.lib-open-link:hover {
+  text-decoration: underline;
+}
+
+.lib-open-disabled {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
 .lib-filters {
   display: flex;
   align-items: center;

@@ -1,16 +1,18 @@
 "use client";
 
 /**
- * 知识库 / 项目库页（二期 B1）
+ * 知识库 / 项目库页（二期 B1，B2 增补 obsidian:// 跳转）
  * - 两 tab：文件浏览（只读列表+筛选+元数据）/ 项目进度（STATUS.md 只读看板）
+ * - B2：文件行「在 Obsidian 打开」链接；库名为空则禁用并提示；顶部可填写 Obsidian 库名
  * - 下方「资源库配置」：统一配知识库目录/项目库目录，并收敛 A8 检索白名单与 A10 导出
- * - 不做：obsidian:// 跳转、git 整理、OCR、编辑正文（后续轮次）
+ * - 不做：git 整理、整理新笔记按钮、OCR、编辑正文（后续轮次）
  */
 import { useCallback, useEffect, useState } from "react";
 
 interface FileEntry {
   path: string; name: string; ext: string; size: number; mtime: string;
   dir: string; root: string; title?: string; tags?: string[];
+  obsidian_uri?: string | null;
 }
 interface Project {
   name: string; path: string; hasStatus: boolean; progress: number | null;
@@ -22,6 +24,7 @@ interface Config {
   indexDirs: string[];
   exportVault: string;
   dirMap: Record<string, string>;
+  obsidianVault?: string;
 }
 
 type Tab = "files" | "projects";
@@ -40,6 +43,7 @@ export default function KnowledgeView() {
   const [form, setForm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [vaultInput, setVaultInput] = useState("");
 
   const loadFiles = useCallback(async () => {
     const q = new URLSearchParams();
@@ -65,6 +69,28 @@ export default function KnowledgeView() {
   }, []);
 
   useEffect(() => { loadFiles(); loadProjects(); loadConfig(); }, [loadFiles, loadProjects, loadConfig]);
+  useEffect(() => { if (config) setVaultInput(config.obsidianVault ?? ""); }, [config]);
+
+  async function saveVault() {
+    if (!config) return;
+    setError(null); setNotice(null);
+    const res = await fetch("/api/libraries", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        knowledgeDirs: config.knowledgeDirs,
+        projectDirs: config.projectDirs,
+        indexDirs: config.indexDirs,
+        exportVault: config.exportVault,
+        dirMap: config.dirMap,
+        obsidianVault: vaultInput.trim(),
+      }),
+    });
+    const d = await res.json();
+    if (!res.ok) { setError(d.error ?? "保存失败"); return; }
+    setConfig(d.config);
+    setNotice("Obsidian 库名已保存，跳转链接已更新");
+    loadFiles();
+  }
 
   function startEdit() {
     if (!config) return;
@@ -74,6 +100,7 @@ export default function KnowledgeView() {
       indexDirs: config.indexDirs,
       exportVault: config.exportVault,
       dirMap: config.dirMap,
+      obsidianVault: config.obsidianVault ?? "",
     }, null, 2));
     setEditing(true); setError(null);
   }
@@ -103,6 +130,9 @@ export default function KnowledgeView() {
     <section>
       <h1 className="view-title">知识库 / 项目库</h1>
       <p className="view-desc">只读浏览知识库文件与项目进度（STATUS.md）。不预览正文、不编辑、不做 OCR；不会写入任何文件。</p>
+      {config && !config.obsidianVault && (
+        <p className="muted">尚未填写 Obsidian 库名，「在 Obsidian 打开」链接已禁用；请在下方填写（需先在 Obsidian 里把测试库注册为 vault）。</p>
+      )}
 
       <div className="todo-toolbar">
         <div className="seg">
@@ -116,6 +146,18 @@ export default function KnowledgeView() {
 
       {tab === "files" && (
         <div className="panel lib-block">
+          <div className="lib-obsidian-bar">
+            <label className="muted" htmlFor="obsidian-vault">Obsidian 库名</label>
+            <input
+              id="obsidian-vault"
+              className="input"
+              value={vaultInput}
+              onChange={(e) => setVaultInput(e.target.value)}
+              placeholder="留空则禁用跳转"
+              aria-label="Obsidian 库名"
+            />
+            <button type="button" className="btn btn-sm" onClick={saveVault}>保存库名</button>
+          </div>
           <div className="lib-filters">
             <div className="seg">
               {[
@@ -138,6 +180,11 @@ export default function KnowledgeView() {
                   <div className="muted">{f.dir} · {f.ext} · {fmtSize(f.size)} · {new Date(f.mtime).toLocaleDateString("zh-CN")}</div>
                   {f.tags && f.tags.length > 0 && (
                     <div className="capture-item-tags">{f.tags.map((t) => <span key={t} className="tag">#{t}</span>)}</div>
+                  )}
+                  {f.obsidian_uri ? (
+                    <a className="lib-open-link" href={f.obsidian_uri}>在 Obsidian 打开 →</a>
+                  ) : (
+                    <span className="muted lib-open-disabled" title="请先填写 Obsidian 库名">未配置库名</span>
                   )}
                 </div>
                 <code className="muted lib-file-path">{f.path}</code>

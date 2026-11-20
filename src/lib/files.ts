@@ -1,8 +1,9 @@
 /**
- * 文件浏览器（二期 B1）
+ * 文件浏览器（二期 B1，B2 增补 obsidian:// 跳转）
  * - 只读：名称/类型/大小/修改时间/路径；.md 额外读前 4KB 取标题+标签
  * - 不读正文预览、不编辑、不做 OCR；排除规则沿用 A8（隐藏目录/密钥文件/项目自身）
  * - 单目录遍历上限 5000 文件，防大库卡死
+ * - B2：buildObsidianUri 纯函数生成跳转链接，库名为空或路径越权 → null；不写任何文件
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -23,6 +24,37 @@ export interface FileEntry {
   root: string;      // 所属知识库根
   title?: string;    // 仅 .md
   tags?: string[];   // 仅 .md
+  obsidian_uri?: string | null; // B2：跳转链接；库名为空/路径越权时为 null
+}
+
+/**
+ * 生成 obsidian:// 跳转链接（二期 B2，纯函数）
+ * - vault 为空 → null（前端禁用链接并提示填写库名）
+ * - 文件路径必须落在某个知识库根内，越权 → null（防拼出真实库链接）
+ * - 沿用 B1 排除规则：隐藏目录 / 密钥文件名 / 项目自身
+ * - .md 省略扩展名（Obsidian 官方 URI 示例），其它文件保留完整文件名
+ * - vault 与 file 做 URL 编码；路径按段编码并保留 `/` 分隔符，便于阅读与调试
+ */
+export function buildObsidianUri(filePath: string, vault: string, roots: string[]): string | null {
+  const v = (vault ?? "").trim();
+  if (!v) return null;
+  const norm = (s: string) => path.resolve(s).replace(/\\/g, "/").replace(/\/+$/, "");
+  const abs = norm(filePath);
+  // 落在最长匹配的白名单根下（多目录配置时取最具体的那个）
+  const matched = roots
+    .map((r) => norm(r))
+    .filter((r) => abs.toLowerCase().startsWith(r.toLowerCase() + "/"))
+    .sort((a, b) => b.length - a.length)[0];
+  if (!matched) return null;
+  let rel = path.relative(matched, abs).replace(/\\/g, "/");
+  if (!rel || rel.startsWith("..")) return null;
+  const segs = rel.split("/");
+  if (segs.some((s) => s.startsWith(".") || EXCLUDE_DIRS.has(s))) return null;
+  if (EXCLUDE_NAME_RE.test(segs[segs.length - 1] ?? "")) return null;
+  if (SELF_DIR_RE.test("/" + rel)) return null;
+  if (rel.toLowerCase().endsWith(".md")) rel = rel.slice(0, -3);
+  const encodePath = (s: string) => s.split("/").map(encodeURIComponent).join("/");
+  return `obsidian://open?vault=${encodeURIComponent(v)}&file=${encodePath(rel)}`;
 }
 
 function readMdMeta(abs: string): { title?: string; tags?: string[] } {
@@ -109,7 +141,11 @@ export function listFiles(q: FileQuery = {}): { total: number; truncated: boolea
   if (q.dir) files = files.filter((f) => f.dir === q.dir || f.dir.startsWith(q.dir!));
   const total = files.length;
   const limit = Math.min(Math.max(q.limit ?? 200, 1), 500);
-  return { total, truncated: total > limit, files: files.slice(0, limit) };
+  const page = files.slice(0, limit).map((f) => ({
+    ...f,
+    obsidian_uri: buildObsidianUri(f.path, cfg.obsidianVault, cfg.knowledgeDirs),
+  }));
+  return { total, truncated: total > limit, files: page };
 }
 
 export function getFileMeta(p: string): FileEntry | null {
@@ -138,6 +174,7 @@ export function getFileMeta(p: string): FileEntry | null {
     if (meta.title) entry.title = meta.title;
     if (meta.tags) entry.tags = meta.tags;
   }
+  entry.obsidian_uri = buildObsidianUri(abs, cfg.obsidianVault, cfg.knowledgeDirs);
   return entry;
 }
 

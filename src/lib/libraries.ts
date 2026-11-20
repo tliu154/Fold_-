@@ -1,9 +1,10 @@
 /**
- * 统一资源库配置（二期 B1）
- * - 一份 data/libraries.json 统一管理：知识库目录(多个)、项目库目录、检索白名单、导出目标
+ * 统一资源库配置（二期 B1，B2 增补 obsidianVault）
+ * - 一份 data/libraries.json 统一管理：知识库目录(多个)、项目库目录、检索白名单、导出目标、Obsidian 库名
  * - 收敛 A8(index-config.json) 与 A10(capture-config.json)：首次若旧文件存在则读入一次，不删旧文件
  * - 不新增表；配置存本地 JSON（data/ 已被 git 忽略）
  * - 默认全部指向测试目录，绝不碰真实知识库（用户 2026-11-20 明确要求）
+ * - B2：obsidianVault 默认空串（不擅自猜库名），用户注册 vault 后自行填写；空串时跳转链接禁用
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -19,6 +20,7 @@ export interface LibrariesConfig {
   indexDirs: string[];       // A8 检索白名单（收敛）
   exportVault: string;       // A10 导出目标（收敛）
   dirMap: Record<string, string>; // A10 导出目录映射（收敛）
+  obsidianVault: string;     // B2：Obsidian 库名（obsidian:// 跳转用，默认为空）
   updated_at: string | null;
 }
 
@@ -35,6 +37,7 @@ function defaults(): LibrariesConfig {
     dirMap: {
       "course/": "课件和教材", "topic/": "笔记", "source/": "资源库", "type/": "笔记",
     },
+    obsidianVault: "",
     updated_at: null,
   };
 }
@@ -73,6 +76,7 @@ export function getLibraries(): LibrariesConfig {
         indexDirs: Array.isArray(parsed.indexDirs) ? parsed.indexDirs : d.indexDirs,
         exportVault: typeof parsed.exportVault === "string" ? parsed.exportVault : d.exportVault,
         dirMap: parsed.dirMap && typeof parsed.dirMap === "object" ? parsed.dirMap : d.dirMap,
+        obsidianVault: typeof parsed.obsidianVault === "string" ? parsed.obsidianVault : d.obsidianVault,
         updated_at: typeof parsed.updated_at === "string" ? parsed.updated_at : null,
       };
     }
