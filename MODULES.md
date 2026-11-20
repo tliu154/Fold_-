@@ -1,5 +1,9 @@
 # Fold_归匣 · 模块清单（MODULES.md）
 
+> ⛔ **本文件已冻结（2026-11-20 用户拍板）**：施工依据统一为 [PRD.md](./PRD.md)，
+> 所有进度只在 PRD 上改。本文件仅作历史模块存档，**勿据其判断当前状态**。
+> `src/features.ts` 仍作为运行时功能开关被 `GET /api/features` 读取，但不再是进度权威源。
+
 > 需求权威源：`个人AI枢纽网站_需求对齐清单_v0.6.md`（定稿，纯需求）
 > 模块状态权威源：`src/features.ts`（`GET /api/features` 直接读取），本文件与之保持一致。
 > 状态：`implemented` 已实做 ｜ `placeholder` 方向已定、占位 ｜ `pending_clarify` 细节待澄清、留空

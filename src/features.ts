@@ -1,9 +1,10 @@
 /**
- * 模块注册表（v0.6 骨架）
+ * 模块注册表（运行时功能开关）
  * - 所有功能模块在此登记；新功能先登记、再走澄清门（清单 3.1）
  * - GET /api/features 直接读取本表
  * - enabled: false 的模块不执行任何逻辑
- * - 模块清单权威源；每次扩展同步更新 MODULES.md
+ * - ⚠️ 进度 / 规格 / 纪律的唯一权威源是项目根 PRD.md（2026-11-20 用户拍板）；
+ *   本表只是运行时开关状态，MODULES.md / PROJECT_PLAN.md 已冻结，不再同步维护。
  */
 export type FeatureStatus = "implemented" | "placeholder" | "pending_clarify";
 
