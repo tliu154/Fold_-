@@ -189,9 +189,18 @@ export const features: FeatureModule[] = [
   {
     id: "weekly-report",
     name: "周报草稿 / 数据源开关面板 / 模板填数 + AI 评述",
-    enabled: false,
-    status: "pending_clarify",
+    enabled: true,
+    status: "implemented",
     phase: "三期",
+    note: "C3 已实做：内部文件库(items type=file + subtype，不新增表) + 全格式整理(提案→批准→分流，一次批准一次 commit) + HTML 周报(程序填数/AI 评述/主页折叠卡/回顾弹框/新标签页只读) + 6 类数据源开关；升级复用 C1 weekly_digest，不新建第二套任务；AI 只写定性评述不改数字、模型不可用如实标注",
+  },
+  {
+    id: "internal-vault",
+    name: "内部文件库 + 全格式整理（文件继承体系）",
+    enabled: true,
+    status: "implemented",
+    phase: "三期",
+    note: "C3：所有新增文件先入 data/internal-vault/未分类/，全格式登记；.md 补 frontmatter、其它格式只读元数据不改内容；整理规范为可配规则表（AI 辅助分类留第 2 轮）；批准后从内部库移动到用户加入的库（开发阶段=测试库）",
   },
   {
     id: "news-feed",

@@ -62,7 +62,8 @@ export function safeName(s: string): string {
 
 /* ---------------- git 工具 ---------------- */
 
-function git(root: string, args: string[]): { ok: boolean; out: string; err: string } {
+/** C3 内部库分流复用同一份 git 调用（不改 B3 行为，仅导出） */
+export function git(root: string, args: string[]): { ok: boolean; out: string; err: string } {
   try {
     const out = execFileSync("git", ["-C", root, ...args], {
       encoding: "utf-8", windowsHide: true, stdio: ["ignore", "pipe", "pipe"],
@@ -102,7 +103,7 @@ function dirtyFiles(root: string, inbox: string): string[] {
   }).slice(0, 50);
 }
 /** 首次整理时初始化仓库——唯一允许 git init 的地方，且只对测试库 */
-function ensureRepo(root: string): { inited: boolean } {
+export function ensureRepo(root: string): { inited: boolean } {
   assertTestOnly(root, "整理仓库根目录");
   if (isRepo(root)) return { inited: false };
   const r = git(root, ["init"]);

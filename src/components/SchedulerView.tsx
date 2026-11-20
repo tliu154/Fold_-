@@ -4,12 +4,15 @@
  * 站内消息 + 定时任务（三期 C1）、待审批提案（三期 C2）
  * - tab「站内消息」：消息中心（未读计数 / 全部·未读筛选 / 标记已读 / 删除 / 展开正文）
  * - tab「待审批提案」：C2 提案列表（生成预览 / 逐条编辑 / 批准执行 / 驳回 / 留档）
+ * - tab「周报数据源」：C3 可配置数据源开关面板（6 类源 + 手动重点），只把勾选源填进周报
  * - 定时任务区在「站内消息」tab 下方：增删改 / 立即运行 / 结构化选时 / 自然语言解析预览 → 确认才保存
  * - 自然语言解析只调一次模型、只返回预览；点「确认添加」才 PUT 保存
- * - 不做：周报模板、AI 评述、Qwen 资讯、邮件与系统通知
+ * - C3：weekly_digest 同一次执行额外产出 HTML 周报（AI 评述）并发轻通知
+ * - 不做：Qwen 资讯、GLM/Qwen 路由、邮件与系统通知
  */
 import { useCallback, useEffect, useState } from "react";
 import ProposalPanel from "./ProposalPanel";
+import ReportSourcesPanel from "./ReportSourcesPanel";
 
 interface Message {
   id: string; kind: string; title: string; body: string;
@@ -66,7 +69,7 @@ function emptyDraft(): Draft {
 }
 
 export default function SchedulerView() {
-  const [tab, setTab] = useState<"messages" | "proposals">("messages");
+  const [tab, setTab] = useState<"messages" | "proposals" | "sources">("messages");
   const [messages, setMessages] = useState<Message[]>([]);
   const [unread, setUnread] = useState(0);
   const [filter, setFilter] = useState<"all" | "unread">("all");
@@ -200,6 +203,7 @@ export default function SchedulerView() {
       <div className="view-tabs seg">
         <button type="button" className={`seg-btn ${tab === "messages" ? "active" : ""}`} onClick={() => setTab("messages")}>站内消息</button>
         <button type="button" className={`seg-btn ${tab === "proposals" ? "active" : ""}`} onClick={() => setTab("proposals")}>待审批提案</button>
+        <button type="button" className={`seg-btn ${tab === "sources" ? "active" : ""}`} onClick={() => setTab("sources")}>周报数据源</button>
       </div>
 
       {tab === "messages" ? (
@@ -360,8 +364,10 @@ export default function SchedulerView() {
         </div>
       </div>
         </>
-      ) : (
+      ) : tab === "proposals" ? (
         <ProposalPanel />
+      ) : (
+        <ReportSourcesPanel />
       )}
     </section>
   );

@@ -7,11 +7,13 @@
  * - B3：文件浏览 tab 顶部显示未整理文件数 + 「整理新笔记」按钮；
  *       点击只出变更预览，点「确认并整理」才真正移动/重命名（一次整理 = 一次 git commit）
  * - C2：整理区并排「生成提案预览」→ 提案预览不落库 → 保存后发站内消息，等你批准才动文件
+ * - C3：新增「内部库」tab —— 程序内部库未分类区的全格式整理（提案 → 批准 → 分流）
  * - 下方「资源库配置」：统一配知识库目录/项目库目录，并收敛 A8 检索白名单与 A10 导出
  * - 不做：OCR、编辑正文、自动整理（B3 手动确认 / C2 用户批准才执行）
  */
 import { useCallback, useEffect, useState } from "react";
 import ProposalGenerator from "./ProposalGenerator";
+import InternalVaultPanel from "./InternalVaultPanel";
 
 interface FileEntry {
   path: string; name: string; ext: string; size: number; mtime: string;
@@ -49,7 +51,7 @@ interface TidyPreview extends TidyStatus {
   items: TidyItem[];
 }
 
-type Tab = "files" | "projects";
+type Tab = "files" | "projects" | "internal";
 
 export default function KnowledgeView() {
   const [tab, setTab] = useState<Tab>("files");
@@ -195,6 +197,7 @@ export default function KnowledgeView() {
         <div className="seg">
           <button type="button" className={`seg-btn ${tab === "files" ? "active" : ""}`} onClick={() => setTab("files")}>文件浏览</button>
           <button type="button" className={`seg-btn ${tab === "projects" ? "active" : ""}`} onClick={() => setTab("projects")}>项目进度</button>
+          <button type="button" className={`seg-btn ${tab === "internal" ? "active" : ""}`} onClick={() => setTab("internal")}>内部库</button>
         </div>
         <button type="button" className="btn btn-sm" onClick={startEdit}>配置目录</button>
       </div>
@@ -368,6 +371,8 @@ export default function KnowledgeView() {
           ))}
         </div>
       )}
+
+      {tab === "internal" && <InternalVaultPanel />}
 
       {editing && (
         <div className="panel lib-config">

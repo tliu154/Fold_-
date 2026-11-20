@@ -8,9 +8,11 @@
  * - 每区标题旁 + 号弹框新增；点已有条目弹同一个框编辑并带删除按钮
  * - 打卡弹框内两个 tab 切「新建习惯 / 随手记一条」
  * - 调用现有 API，不改各 tab 页代码
+ * - C3：最上方（五分区之前）加折叠周报卡，默认折叠、新周报自动展开
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import Modal from "./Modal";
+import HomeReportCard from "./HomeReportCard";
 
 type Tab = "todo" | "event" | "checkin" | "memo" | "goal";
 type Section = "todo" | "event" | "habit" | "note" | "goal";
@@ -106,6 +108,7 @@ export default function HomeDashboard({ onOpen }: { onOpen: (tab: Tab) => void }
     <section>
       <h1 className="view-title">首页</h1>
       <p className="view-desc">整合 + 调度 + 自动化的个人指挥台。内容从上到下分区，点 + 号或条目即可编辑。</p>
+      <HomeReportCard />
       {notice && <p className="form-notice">{notice}</p>}
 
       {loading ? <p className="muted">载入中…</p> : (

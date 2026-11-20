@@ -30,6 +30,7 @@ import {
   type MessageKind, type Message,
 } from "./messages";
 import { generateProposalPreview, saveProposal } from "./proposals";
+import { generateWeeklyReport, createReportNotice } from "./reports";
 
 /* ---------------- 类型 ---------------- */
 
@@ -78,7 +79,11 @@ export const JOB_CATALOG: { id: JobId; name: string; desc: string }[] = [
   { id: "proposal_scan", name: "生成整理提案", desc: "C2：扫未整理目录出变更提案并发站内消息，等你批准后才会动文件（AI 只补弱标签）" },
 ];
 
-/** AI 评述占位：C1 不落地，周报轮次接入（清单「模板骨架 + 程序填数 + AI 评述」第三步） */
+/**
+ * C1 三个内置任务仍然是「纯程序填数」的消息，不调模型（保留 C1 既有行为）。
+ * C3 的 AI 评述不在这三个消息里，而是 weekly_digest 同一次执行额外产出的
+ * **HTML 周报文件**（见 reports.ts），故本开关维持 false 语义不变。
+ */
 export const AI_COMMENTARY_ENABLED = false;
 
 /* ---------------- 配置文件 ---------------- */
@@ -328,7 +333,20 @@ export async function executeJob(
   }
 
   const { title, body, kind } = buildJobBody(task.job, now);
-  return createMessage({ kind, title, body, source }, trigger === "cron");
+  const message = createMessage({ kind, title, body, source }, trigger === "cron");
+
+  // C3：weekly_digest 在原「每周数据小结」之外，同一次执行额外产出一份 HTML 周报。
+  // 不新建第二套定时任务；周报按 ISO 周幂等（本周已生成则复用，不重复调模型）。
+  // 模型失败如实标注、绝不影响上面这条 C1 既有的纯程序填数消息。
+  if (task.job === "weekly_digest") {
+    try {
+      const report = await generateWeeklyReport({ useAi: true, source: `job:weekly_digest:${source}` });
+      createReportNotice(report, trigger, now);
+    } catch (e) {
+      console.error("[scheduler] 周报生成失败（不影响每周数据小结）：", e);
+    }
+  }
+  return message;
 }
 
 /* ---------------- 错过汇总消息 ---------------- */
