@@ -27,6 +27,12 @@ export async function registerCronTasks(): Promise<void> {
 
     cron.schedule("* * * * *", () => {
       void runTick().catch((e) => console.error("[cron] tick 失败：", e));
+      // C3 第 3 轮：资讯定时订阅走自己的调度状态（按天幂等），
+      // 不往 scheduler 的 4 个内置任务里加第 5 个，避免影响已验收断言。
+      // 抓取失败在 news 模块内如实标注，绝不让异常打断调度器。
+      void import("./news")
+        .then((m) => m.runNewsSchedule())
+        .catch((e) => console.error("[cron] 资讯订阅失败：", e));
     });
     console.log("[cron] 定时任务已注册（每 60 秒盘点一次，服务进程内运行）");
   } catch (e) {

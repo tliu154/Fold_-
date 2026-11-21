@@ -1997,10 +1997,39 @@ button {
 .as-hist-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .as-hist-diff { font-family: var(--font-mono); font-size: 11px; word-break: break-all; }
 
+/* ---- 资讯订阅（三期 C3 第 3 轮） ---- */
+.news-block { margin-top: 14px; }
+.news-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.news-head .muted { margin: 4px 0 0; font-size: 12px; line-height: 1.6; }
+.news-model { margin: 8px 0 0; font-size: 11px; }
+.news-topics, .news-feed { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.news-topic, .news-card {
+  border: 1px solid var(--line, #dde5e3); border-radius: 8px;
+  padding: 10px 12px; background: var(--surface, #fff);
+}
+.news-topic { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.news-topic.off { opacity: .55; }
+.news-query { font-size: 11px; margin-top: 4px; line-height: 1.5; }
+.news-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.news-sched { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; white-space: nowrap; }
+.news-edit-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.news-edit-row .input:first-child { max-width: 180px; }
+.news-edit-row .input:nth-child(2) { flex: 1; min-width: 200px; }
+.news-draft-bar { display: flex; gap: 8px; margin-top: 10px; }
+.news-draft-bar .input { flex: 1; }
+.news-draft { margin-top: 10px; padding: 10px 12px; border: 1px dashed var(--line, #dde5e3); border-radius: 8px; }
+.news-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.news-summary { margin: 8px 0; font-size: 13px; line-height: 1.6; }
+.news-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; }
+.news-source { margin-top: 6px; font-size: 12px; }
+.news-source a { color: var(--accent, #2C5F5D); }
+
 @media (max-width: 720px) {
   .ft-tree { max-height: 50vh; }
   .as-input-row { flex-direction: column; }
   .as-manual .input { max-width: 100%; }
   .lv-path { font-size: 11px; }
   .butler-toolbar-actions { flex-wrap: wrap; }
+  .news-head { flex-direction: column; }
+  .news-edit-row .input:first-child, .news-edit-row .input:nth-child(2) { max-width: 100%; min-width: 100%; }
 }

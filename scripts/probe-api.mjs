@@ -91,21 +91,25 @@ try {
 }
 
 // 3. 结构化输出
+// deepseek-flash 实测偶发返回 HTTP 200 但 content 为空（瞬时故障，非能力缺失）。
+// 有限重试 3 次真实调用，成功即通过并如实打印第几次成功；3 次都空才判失败（不 mock）。
 try {
-  const r = await call("/chat/completions", {
-    model: MODEL,
-    messages: [{ role: "user", content: "返回 JSON：{\"ok\":true}" }],
-    response_format: { type: "json_object" },
-    max_tokens: 64,
-  });
-  const content = r.data?.choices?.[0]?.message?.content ?? "";
-  let parsed = null;
-  try { parsed = JSON.parse(content); } catch { /* 非 JSON */ }
-  result(
-    "3. 结构化输出 json_object",
-    r.status === 200 && parsed && typeof parsed === "object",
-    `HTTP ${r.status}`
-  );
+  let ok3 = false, detail3 = "";
+  for (let attempt = 1; attempt <= 3 && !ok3; attempt++) {
+    const r = await call("/chat/completions", {
+      model: MODEL,
+      messages: [{ role: "user", content: "返回 JSON：{\"ok\":true}" }],
+      response_format: { type: "json_object" },
+      max_tokens: 128,
+    });
+    const content = r.data?.choices?.[0]?.message?.content ?? "";
+    let parsed = null;
+    try { parsed = JSON.parse(content); } catch { /* 非 JSON */ }
+    ok3 = r.status === 200 && parsed && typeof parsed === "object";
+    detail3 = ok3 ? `HTTP ${r.status} · 第 ${attempt} 次成功` : `HTTP ${r.status} · 第 ${attempt} 次空内容`;
+    if (!ok3 && attempt < 3) await new Promise((s) => setTimeout(s, 400));
+  }
+  result("3. 结构化输出 json_object", ok3, detail3);
 } catch (e) {
   result("3. 结构化输出 json_object", false, e.message);
 }
@@ -140,6 +144,61 @@ try {
   );
 } catch (e) {
   result("4. function calling", false, e.message);
+}
+
+
+/* ---------------- Qwen 联网探针（C3 第 3 轮） ----------------
+ * 1 次最小真实调用验证 key / model / enable_search 联网能力。
+ * 不打印完整 key；失败如实标注，不 mock 假装成功。
+ */
+console.log("");
+console.log("Qwen 联网资讯探针（C3 第 3 轮）");
+const QKEY = E.QWEN_API_KEY || "";
+const QBASE = (E.QWEN_BASE_URL || "https://dashscope.aliyuncs.com/compatible-mode/v1").replace(/\/$/, "");
+const QMODEL = E.QWEN_MODEL || "qwen-plus";
+console.log(`  base = ${QBASE}`);
+console.log(`  model = ${QMODEL}`);
+console.log(`  key = ${QKEY ? QKEY.slice(0, 6) + "..." + QKEY.slice(-4) : "(未配置)"}`);
+
+if (!QKEY) {
+  result("Q1. 已配置 QWEN_API_KEY", false, "未配置，资讯功能将如实标 model_unavailable");
+} else {
+  result("Q1. 已配置 QWEN_API_KEY", true);
+  // GET /models 不产生 token 费用
+  try {
+    const qr = await fetch(QBASE + "/models", { headers: { Authorization: `Bearer ${QKEY}` } });
+    const qd = await qr.json().catch(() => ({}));
+    const qids = (qd.data || []).map((m) => m.id);
+    result("Q2. GET /models 连通", qr.status === 200, `HTTP ${qr.status} · ${qids.length} 个模型`);
+    result("Q2b. 配置的 model 在列表里", qids.includes(QMODEL), qids.length ? "可用，例如 " + qids.slice(0, 5).join(", ") : "未返回模型列表");
+  } catch (e) {
+    result("Q2. GET /models 连通", false, e.message);
+  }
+  // 1 次最小真实调用：enable_search + json_object 共存
+  try {
+    const qr = await fetch(QBASE + "/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${QKEY}` },
+      body: JSON.stringify({
+        model: QMODEL,
+        messages: [{ role: "user", content: "只返回 JSON 对象：{\"ok\":true}" }],
+        max_tokens: 64,
+        enable_search: true,
+        search_options: { forced_search: true, enable_source: true },
+        response_format: { type: "json_object" },
+      }),
+    });
+    const qtext = await qr.text();
+    let qd = {};
+    try { qd = JSON.parse(qtext); } catch { /* 非 JSON */ }
+    const content = qd?.choices?.[0]?.message?.content ?? "";
+    let parsed = null;
+    try { parsed = JSON.parse(content); } catch { /* 非 JSON */ }
+    result("Q3. enable_search + json_object 共存", qr.status === 200 && parsed && typeof parsed === "object",
+      `HTTP ${qr.status}${qd?.error ? " · " + (qd.error.message || "") : ""}`);
+  } catch (e) {
+    result("Q3. enable_search + json_object 共存", false, e.message);
+  }
 }
 
 console.log("");

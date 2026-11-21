@@ -221,17 +221,18 @@ export const features: FeatureModule[] = [
   {
     id: "news-feed",
     name: "资讯订阅（Qwen 内置联网搜索）",
-    enabled: false,
-    status: "pending_clarify",
+    enabled: true,
+    status: "implemented",
     phase: "三期",
-    note: "一期不做 RSS；资讯只走 Qwen",
+    note: "C3 第 3 轮：Qwen enable_search 内置联网，手动「获取资讯」+ 按天幂等的定时订阅；可配置主题（预置 AI+CV+CG 科研动向）+ 手动/管家双通道；只读预览 + 站内轻通知；items(type=feed) 不新增表；不做 RSS、不自动存文件/进周报/混入 6 类数据源。该兼容端点不返回可核验来源 URL，只保留真实出现的链接，否则标注未提供",
   },
   {
     id: "model-router",
-    name: "GLM / Qwen 接入（三模型路由补齐）",
-    enabled: false,
-    status: "pending_clarify",
+    name: "Qwen 联网模型接入（三模型路由补齐 Qwen 一路）",
+    enabled: true,
+    status: "implemented",
     phase: "三期",
+    note: "C3 第 3 轮接上 getSearchModel()（Qwen，OpenAI 兼容 + enable_search），资讯抓取独立成 news.ts、不走 chat 链路；getReasoningModel() 本轮不动，重型推理留后续。本轮仅加固了 chat.ts 的 callStructured() 空内容重试（管家草案共用），DeepSeek 日常调用语义不变",
   },
 
   // ---- 四期 ----

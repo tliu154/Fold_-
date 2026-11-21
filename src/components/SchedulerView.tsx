@@ -5,15 +5,18 @@
  * - tab「站内消息」：消息中心（未读计数 / 全部·未读筛选 / 标记已读 / 删除 / 展开正文）
  * - tab「待审批提案」：C2 提案列表（生成预览 / 逐条编辑 / 批准执行 / 驳回 / 留档）
  * - tab「周报数据源」：C3 可配置数据源开关面板（6 类源 + 手动重点），只把勾选源填进周报
+ * - tab「资讯订阅」：C3 第 3 轮 Qwen 内置联网（手动获取 / 手动+管家双通道改主题 / 定时开关 / 只读预览）
  * - 定时任务区在「站内消息」tab 下方：增删改 / 立即运行 / 结构化选时 / 自然语言解析预览 → 确认才保存
  * - 自然语言解析只调一次模型、只返回预览；点「确认添加」才 PUT 保存
  * - C3：weekly_digest 同一次执行额外产出 HTML 周报（AI 评述）并发轻通知
- * - 不做：Qwen 资讯、GLM/Qwen 路由、邮件与系统通知
+ * - 不做：资讯自动收藏成文件 / 进周报 / 混入 6 类数据源、GLM/Qwen 重型推理路由、邮件与系统通知
+ * - 注：资讯定时订阅走 news.ts 自有按天幂等调度，不占 scheduler 的 4 个内置任务
  */
 import { useCallback, useEffect, useState } from "react";
 import ProposalPanel from "./ProposalPanel";
 import ReportSourcesPanel from "./ReportSourcesPanel";
 import AiSettingsBox from "./AiSettingsBox";
+import NewsPanel from "./NewsPanel";
 
 interface Message {
   id: string; kind: string; title: string; body: string;
@@ -70,7 +73,7 @@ function emptyDraft(): Draft {
 }
 
 export default function SchedulerView() {
-  const [tab, setTab] = useState<"messages" | "proposals" | "sources">("messages");
+  const [tab, setTab] = useState<"messages" | "proposals" | "sources" | "news">("messages");
   const [srcVer, setSrcVer] = useState(0);
   const [messages, setMessages] = useState<Message[]>([]);
   const [unread, setUnread] = useState(0);
@@ -206,6 +209,7 @@ export default function SchedulerView() {
         <button type="button" className={`seg-btn ${tab === "messages" ? "active" : ""}`} onClick={() => setTab("messages")}>站内消息</button>
         <button type="button" className={`seg-btn ${tab === "proposals" ? "active" : ""}`} onClick={() => setTab("proposals")}>待审批提案</button>
         <button type="button" className={`seg-btn ${tab === "sources" ? "active" : ""}`} onClick={() => setTab("sources")}>周报数据源</button>
+        <button type="button" className={`seg-btn ${tab === "news" ? "active" : ""}`} onClick={() => setTab("news")}>资讯订阅</button>
       </div>
 
       {tab === "messages" ? (
@@ -368,7 +372,7 @@ export default function SchedulerView() {
         </>
       ) : tab === "proposals" ? (
         <ProposalPanel />
-      ) : (
+      ) : tab === "sources" ? (
         <>
           <ReportSourcesPanel key={srcVer} />
           <AiSettingsBox
@@ -377,6 +381,8 @@ export default function SchedulerView() {
             onApplied={() => setSrcVer((v) => v + 1)}
           />
         </>
+      ) : (
+        <NewsPanel />
       )}
     </section>
   );

@@ -272,27 +272,42 @@ export async function callChatWithTools(messages: { role: string; content: strin
 }
 
 /**
- * 结构化输出能力预留（本期不落地调用）。
- * 后续分类 / 整理提案 / 记下来等需要程序解析的结果，走这个函数强制 json_object。
+ * 结构化输出（C3-2 设置通道 / C3-3 资讯管家草案复用）。
+ * 分类 / 整理提案 / 记下来等需要程序解析的结果，走这个函数强制 json_object。
+ *
+ * 2026-11-21 实测：deepseek-flash 在 json_object 模式下偶发返回 HTTP 200 但 content 为空
+ * （瞬时故障，非能力缺失）。对「请求成功但内容解析不了」做有限重试（最多 3 次真实调用），
+ * 仍失败才抛错，由上游如实标 ai_failed / ai_bad_output——不 mock、不假装成功。
+ * 非 2xx 属于真故障，直接抛出不重试。
  */
 export async function callStructured<T>(messages: { role: string; content: string }[]): Promise<T> {
   const cfg = getDailyModel();
   if (!cfg.apiKey) throw new Error("未配置 DEEPSEEK_API_KEY");
-  const res = await fetch(`${cfg.baseUrl.replace(/\/$/, "")}/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
-    body: JSON.stringify({
-      model: cfg.model, messages, max_tokens: 1024,
-      response_format: { type: "json_object" },
-    }),
-  });
-  const data = (await res.json().catch(() => ({}))) as {
-    choices?: { message?: { content?: string } }[];
-    error?: { message?: string };
-  };
-  if (!res.ok) throw new Error(data.error?.message || `模型调用失败(${res.status})`);
-  const raw = data.choices?.[0]?.message?.content ?? "";
-  return JSON.parse(raw) as T;
+  const url = `${cfg.baseUrl.replace(/\/$/, "")}/chat/completions`;
+  let lastErr = "结构化输出内容为空";
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
+      body: JSON.stringify({
+        model: cfg.model, messages, max_tokens: 1024,
+        response_format: { type: "json_object" },
+      }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      choices?: { message?: { content?: string } }[];
+      error?: { message?: string };
+    };
+    if (!res.ok) throw new Error(data.error?.message || `模型调用失败(${res.status})`);
+    const raw = data.choices?.[0]?.message?.content ?? "";
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      lastErr = `结构化输出无法解析（第 ${attempt} 次）`;
+      if (attempt < 3) await new Promise((s) => setTimeout(s, 400));
+    }
+  }
+  throw new Error(lastErr);
 }
 
 /**

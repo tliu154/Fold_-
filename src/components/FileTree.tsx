@@ -94,15 +94,45 @@ interface Props {
 
 export default function FileTree({ files, total, truncated, onRefresh, onUploaded }: Props) {
   const tree = useMemo(() => buildTree(files), [files]);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // 默认折叠（用户 2026-11-21）：库根只展开一层，所有子目录初始都收起，
+  // 不再一进页面就把整棵树全部铺开。toggled 记录「被用户手动改过状态」的节点，
+  // 这样刷新 / 新增库后新出现的目录仍按默认折叠，不会被一次性展开。
+  const [toggled, setToggled] = useState<Set<string>>(new Set());
   const [notice, setNotice] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const lastOpen = useRef<{ key: string; at: number } | null>(null);
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function toggle(key: string) {
-    setCollapsed((s) => { const n = new Set(s); if (n.has(key)) n.delete(key); else n.add(key); return n; });
+  /** 默认展开状态：只有库根默认展开一层 */
+  function defaultOpen(node: TreeNode): boolean {
+    return node.type === "vault";
+  }
+
+  /** 当前是否展开 = 默认值被 toggled 取反 */
+  function isOpen(node: TreeNode): boolean {
+    const d = defaultOpen(node);
+    return toggled.has(node.key) ? !d : d;
+  }
+
+  function toggle(node: TreeNode) {
+    setToggled((s) => { const n = new Set(s); if (n.has(node.key)) n.delete(node.key); else n.add(node.key); return n; });
+  }
+
+  /** 展开全部 / 折叠全部：把「当前状态与目标不符」的节点放进 toggled */
+  function setAll(open: boolean) {
+    const keys = new Set<string>();
+    const walk = (nodes: TreeNode[]): void => {
+      for (const n of nodes) {
+        if (n.type === "file") continue;
+        // toggled 的语义是「与默认展开状态相反」，所以这里必须跟 defaultOpen 比，
+        // 不能跟当前 isOpen 比（否则已手动展开的目录会被算错）。
+        if (defaultOpen(n) !== open) keys.add(n.key);
+        walk(n.children);
+      }
+    };
+    walk(tree);
+    setToggled(keys);
   }
 
   async function requestOpen(payload: { root: string; rel: string; kind: "file" | "folder" }) {
@@ -134,7 +164,7 @@ export default function FileTree({ files, total, truncated, onRefresh, onUploade
 
   function onDirClick(node: TreeNode) {
     if (clickTimer.current) clearTimeout(clickTimer.current);
-    clickTimer.current = setTimeout(() => { toggle(node.key); clickTimer.current = null; }, 220);
+    clickTimer.current = setTimeout(() => { toggle(node); clickTimer.current = null; }, 220);
   }
   function onDirDoubleClick(node: TreeNode) {
     if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
@@ -162,7 +192,7 @@ export default function FileTree({ files, total, truncated, onRefresh, onUploade
 
   function renderNode(node: TreeNode, depth: number): React.ReactNode {
     const isFile = node.type === "file";
-    const isCollapsed = collapsed.has(node.key);
+    const isCollapsed = !isOpen(node);
     const caret = isFile ? "" : isCollapsed ? "▸" : "▾";
     const badge = isFile && node.file
       ? (node.file.ext.replace(/^\./, "").toUpperCase() || "FILE") : "";
@@ -194,9 +224,11 @@ export default function FileTree({ files, total, truncated, onRefresh, onUploade
     >
       <div className="ft-bar">
         <span className="muted">
-          共 {total} 个文件{truncated ? `（只显示前 ${files.length} 个）` : ""} · 单击/双击文件打开，文件夹单击折叠、双击打开资源管理器
+          共 {total} 个文件{truncated ? `（只显示前 ${files.length} 个）` : ""} · 默认折叠子目录；单击文件夹展开/折叠、双击打开资源管理器
         </span>
         <div className="ft-bar-actions">
+          <button type="button" className="btn btn-sm" onClick={() => setAll(false)}>全部折叠</button>
+          <button type="button" className="btn btn-sm" onClick={() => setAll(true)}>展开全部</button>
           <button type="button" className="btn btn-sm" onClick={onRefresh}>刷新</button>
         </div>
       </div>

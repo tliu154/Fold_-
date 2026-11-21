@@ -25,6 +25,20 @@ const REAL = "D:\\我的知识库";
 const DATA_DIR = "D:\\我的知识库\\develop\\Fold_\\data";
 const LOG_FILE = path.join(DATA_DIR, "tidy-log.json");
 
+/**
+ * 2026-11-21 修：三处「无 date frontmatter 的笔记」期望文件名原本写死 2026-11-20
+ * （＝脚本编写当天），而 tidy.ts 用 `fmtDate(fs.statSync(源文件).mtime)` 生成 YYYY-MM-DD_标题.md，
+ * fixture 都是本脚本运行时刚写入的 → mtime 就是运行当天。跨日后写死值必然找不到文件，
+ * 断言假红并让后续 read() 抛 ENOENT 中断整套脚本。
+ * 这里按同一规则动态算运行当天前缀，断言口径与产品同源、不放宽任何校验。
+ * 另两处 2026-11-01 / 2026-11-03 是 fixture 自带 date frontmatter，属于输入固定值，不改。
+ */
+const RUN_DAY = (() => {
+  const d = new Date();
+  const p2 = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+})();
+
 let token = "";
 let passed = 0, failed = 0, warned = 0;
 
@@ -247,8 +261,8 @@ async function main() {
   ok("首次整理自动 git init（仅测试库）", r1?.inited === startedCleanRepo, JSON.stringify({ inited: r1?.inited, startedCleanRepo }));
   ok("执行后测试库出现 .git", fs.existsSync(path.join(TEST_POSIX, ".git")));
   ok("移动到 课件和教材/2026-11-01_极限的定义.md", fs.existsSync(path.join(TEST_POSIX, "课件和教材", "2026-11-01_极限的定义.md")));
-  ok("移动到 笔记/2026-11-20_数列收敛.md", fs.existsSync(path.join(TEST_POSIX, "笔记", "2026-11-20_数列收敛.md")));
-  ok("无标签笔记按 笔记 目录落位", fs.existsSync(path.join(TEST_POSIX, "笔记", "2026-11-20_随手想法.md")));
+  ok(`移动到 笔记/${RUN_DAY}_数列收敛.md`, fs.existsSync(path.join(TEST_POSIX, "笔记", `${RUN_DAY}_数列收敛.md`)));
+  ok("无标签笔记按 笔记 目录落位", fs.existsSync(path.join(TEST_POSIX, "笔记", `${RUN_DAY}_随手想法.md`)));
   ok("子目录笔记也被整理", fs.existsSync(path.join(TEST_POSIX, "笔记", "2026-11-03_子目录笔记.md")));
   ok("源文件已从 未整理 移走", !fs.existsSync(fC1) && !fs.existsSync(fT1) && !fs.existsSync(fSub));
   ok("冲突文件仍留在未整理目录", fs.existsSync(fC2));
@@ -300,7 +314,7 @@ async function main() {
   ok("开启后预览出现「打标签」动作", (tagItem?.actions ?? []).includes("打标签"), JSON.stringify(tagItem?.actions));
   const runTag = await api("/api/tidy/run", { method: "POST" });
   ok("开启后执行 → 200", runTag.status === 200, JSON.stringify(runTag.data).slice(0, 200));
-  const tagged = path.join(TEST_POSIX, "笔记", "2026-11-20_脏工作区.md");
+  const tagged = path.join(TEST_POSIX, "笔记", `${RUN_DAY}_脏工作区.md`);
   ok("文件落下且补上 #type/笔记", fs.existsSync(tagged) && read(tagged).includes('"#type/笔记"'), fs.existsSync(tagged) ? read(tagged).split(/\r?\n/).slice(0, 8).join(" / ") : "缺文件");
   ok("补标签未丢原有 topic 标签", read(tagged).includes("topic/脏测试"));
   ok("第二次整理有独立提交", git(["log", "--oneline"]).out.split(/\r?\n/).filter(Boolean).length === 2);

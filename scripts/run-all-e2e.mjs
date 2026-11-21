@@ -10,8 +10,11 @@
  *   批量删除保护在累计删除达 200 后会让 e2e 内部 fs.rmSync 清场静默失败 → fixture 累积连锁假失败。
  * - ⚠️ **不要设 CODEBUDDY_SAFE_DELETE_ENABLED=0**：实测会让 capture/proposals/tidy/reports
  *   4 套子进程直接崩（Windows 0xC0000409 / exit=3221226505），与历史 exit=127 同源。
- * - 18 套分 4 批，中间 sleep 65 避开登录限流（10 次 / 60 秒）；scheduler 必须排在 proposals 之前。
+ * - 19 套分 4 批，中间 sleep 65 避开登录限流（10 次 / 60 秒）；scheduler 必须排在 proposals 之前。
  * - proposals 跑完后再自愈一次（它会 init git + 停用任务，收尾易留残留）。
+ * - C3 第 3 轮：resetVault() 顺手关闭「资讯定时订阅」（data/news-topics.json 的 schedule.enabled），
+ *   防回归这几分钟里 cron 每分钟 tick 自发触发 Qwen 联网抓取（省费用 + 防消息污染）；只关开关，
+ *   不删用户自定义主题。e2e-news 自己会备份/恢复完整配置。
  * - 全部跑完 resetVault() + ensureSeed()：模拟数据恢复，网页随时有内容可看。
  * - **不改任何已验收 e2e 的业务断言**（唯一例外见 PRD §6.3：proposals 的 killGit 清理函数）。
  *
@@ -28,9 +31,10 @@ const BATCHES = [
   ["todos", "events", "goals", "checkins", "home"],
   ["memory", "index", "butler", "capture", "libraries"],
   ["obsidian", "scheduler", "proposals", "tidy", "chat"], // scheduler 必须在 proposals 之前
-  ["reports", "filetree", "settings"],
+  ["reports", "filetree", "settings", "news"], // news 放最后：含 1 次真实 Qwen 调用
 ];
 const SCHEDULER_CFG = path.resolve("data/scheduler.json");
+const NEWS_CFG = path.resolve("data/news-topics.json");
 const BUILTIN_JOBS = ["daily_focus", "inbox_scan", "weekly_digest", "proposal_scan"];
 
 // 调大阈值让累计删除不再触发拦截；**保持 ENABLED=1**，关掉会让子进程崩溃
@@ -70,6 +74,31 @@ function forceRemoveGit(gitDir) {
   }
 }
 
+/** 首次调用时采样资讯配置原值（验收后 restore 用），随后只把定时开关关掉，不删用户主题 */
+let newsSchedBackup; // undefined=未采样 / null=原本无文件 / string=原文件字节
+function disableNewsSchedule() {
+  if (newsSchedBackup === undefined) {
+    newsSchedBackup = fs.existsSync(NEWS_CFG) ? fs.readFileSync(NEWS_CFG, "utf-8") : null;
+  }
+  if (!fs.existsSync(NEWS_CFG)) return 0; // 不存在 = defaults() = 定时默认关闭
+  try {
+    const cfg = JSON.parse(fs.readFileSync(NEWS_CFG, "utf-8"));
+    if (cfg.schedule?.enabled === true) {
+      cfg.schedule.enabled = false;
+      fs.writeFileSync(NEWS_CFG, JSON.stringify(cfg, null, 2));
+      return 1;
+    }
+  } catch { /* 损坏配置不动，交给 e2e-news 自己兜底 */ }
+  return 0;
+}
+function restoreNewsSchedule() {
+  if (newsSchedBackup === undefined) return;
+  try {
+    if (newsSchedBackup === null) { if (fs.existsSync(NEWS_CFG)) fs.unlinkSync(NEWS_CFG); }
+    else fs.writeFileSync(NEWS_CFG, newsSchedBackup, "utf-8");
+  } catch { /* 不因恢复失败影响总结果 */ }
+}
+
 function resetVault() {
   forceRemoveGit(path.join(TEST_VAULT, ".git"));
   // 清空库内所有文件（含种子与 fixture 残留），保留目录结构
@@ -87,7 +116,8 @@ function resetVault() {
     }
     if (enabledFixed) fs.writeFileSync(SCHEDULER_CFG, JSON.stringify(cfg, null, 2));
   } catch {}
-  return { removed, enabledFixed, gitExists: fs.existsSync(path.join(TEST_VAULT, ".git")) };
+  const newsDisabled = disableNewsSchedule();
+  return { removed, enabledFixed, newsDisabled, gitExists: fs.existsSync(path.join(TEST_VAULT, ".git")) };
 }
 
 function sleep(ms) {
@@ -102,6 +132,7 @@ function summarize(out) {
 
 if (process.argv.includes("--reset-only")) {
   console.log("仅复位环境：", resetVault(), "-> 重建种子", ensureSeed(), vaultStatus());
+  restoreNewsSchedule();
   process.exit(0);
 }
 
@@ -132,5 +163,6 @@ for (const [i, batch] of BATCHES.entries()) {
 console.log("\n========== 验收后：复位环境 + 重建种子 ==========");
 console.log("reset =", resetVault());
 console.log(ensureSeed(), vaultStatus());
+restoreNewsSchedule(); // 恢复用户原本的资讯定时开关（含「原本无文件」的情况）
 console.log(`\n总结果：${allOk ? "全部通过" : "有失败项，见上方明细"}`);
 process.exit(allOk ? 0 : 1);
