@@ -14,7 +14,7 @@
 > | `个人AI枢纽网站_需求对齐清单_v0.6.md` + 交接文档 | 原始需求定稿（项目外） | 只读依据；与本文冲突时**以本文记录的最新用户裁决为准** |
 > | WorkBuddy `MEMORY.md` / 日志 | 助手记忆 | 辅助，不作施工依据 |
 >
-> 最后更新：2026-11-20 夜 ｜ 当前阶段：**三期 C3 第 2 轮已完成并推送**（AI 个性化设置通道 L0/L1 + 文件管理器改版 + 测试库种子保留，一轮合并完成） ｜ 下一轮：**C3 第 3 轮 Qwen 资讯 / 三模型路由**，或全库扫描 §9.2，**顺序待用户定**
+> 最后更新：2026-11-21 早 ｜ 当前阶段：**三期 C3 第 2 轮已完成并推送**（`c3ca839`）；2026-11-21 早追加修复 **Service Worker 缓存故障**（用户手验发现，见 §6.3 / §8） ｜ 下一轮：**C3 第 3 轮 Qwen 资讯 / 三模型路由**（用户已选定方向，待本故障确认恢复后单独走澄清门）；其后全库扫描 §9.2，**顺序待用户定**
 > （commit hash 以 `git log --oneline -3` 为准，不在头部写易过期的值。）
 
 ---
@@ -241,6 +241,7 @@
 - **🆕 会话续接后后台 `task_id` 会失效**（`TaskOutput` 报 not found）→ 别把记忆里「已启动」当成验收通过；在当前会话重跑并拉取新结果，或直接查磁盘状态（`seed-vault.mjs --check` / `git log` / 服务 health）。
 - **🆕 全量回归的「状态 / 顺序耦合」假失败（C3-2 实测）**：① `e2e-proposals` 开头会**停用全部定时任务**、收尾才恢复成「开头读到的配置」；一旦某次收尾没恢复，`data/scheduler.json` 就自锁成 4 个 `enabled:false`，紧随其后的 `e2e-scheduler`「默认全部启用 / 错过累计 / 汇总消息」连挂 4 项 → 总入口已把 `scheduler` 排到 `proposals` **之前**，`resetVault()` 强制恢复内置任务启用；**复位后单跑 `e2e-scheduler` = 76/76**。② 测试库残留 `.git` + 种子 / fixture 会让 tidy / proposals 前置「脏工作区」连锁 400（首轮 97/98、复位后单跑 91/98，内部清场被拦导致 fixture 从 2 个累积到 5 个）→ 调大阈值后 `e2e-proposals` 恢复 **97/98**，只剩「`.git` 没删掉」。③ **根因是 `e2e-proposals` 的 `killGit()` 只 `fs.rmSync` 且 `catch {}` 吞错，git 对象只读删不动** → 本轮唯一一次改已验收脚本：**只改这个清理函数**（复用 `e2e-reports.mjs` 已有的「去只读 + 系统强删回落」写法），**不动任何断言**；`run-all-e2e.mjs` 的 `resetVault()` 同样处理。这些全是环境 / 顺序问题，不是产品代码回归。
 - **🆕 `--reset-only` 开关**：`node scripts/run-all-e2e.mjs --reset-only` 只复位环境并重建种子、不跑验收；环境被 e2e 搞脏时手动恢复用。
+- **🆕🔥 Service Worker 缓存导致「服务端全 200、浏览器全坏」（2026-11-21 用户手验发现）**：现象＝首页 HTML 骨架出来了但**样式全丢**、永远卡「载入中…」、dev 的「N」悬浮球也不出现、多次刷新无效，而 PowerShell / 服务端**无任何报错**、`curl` 所有 HTML / CSS / JS 都 200。**根因**：`public/sw.js`（阶段 0 PWA 壳）对**所有同源 GET 用 cache-first**，`install` 还 `addAll(["/", "/login", ...])` 把首页 HTML 快照缓存，缓存名 `fold-shell-v1` 硬编码永不失效；SW 按 **origin 常驻浏览器**，`SwRegister.tsx` 只在 `production` 注册但注销不了已注册的 SW。昨晚跑生产 `build + start`（资源 URL 带 hash），今早换 `npm run dev`（资源 URL 是 `?v=时间戳`、`.next` 被 dev 覆盖、`BUILD_ID` 消失）→ 浏览器拿旧缓存 HTML 去请求带 hash 的旧 CSS/JS → dev server **404** → CSS 丢失 + JS 不 hydrate + 卡 loading。**curl 不走 SW 所以全绿，这是最容易误判的地方**。**修复**：① `sw.js` 缓存升级 `fold-shell-v2`、`install` 只缓存 `/icon.svg` + `/manifest.json`；导航请求 / `/login` / `/_next/*` **一律不 respondWith、直接走网络**（这些 URL 会随 dev↔生产切换变化，缓存必然错配）；② `SwRegister.tsx` 在 dev 主动 `getRegistrations().unregister()` + 清 `caches`，消除跨模式串台。**用户侧一次性自救**：无痕窗口打开，或控制台 `navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()));caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));location.reload()`。⚠️ 改了 `sw.js` 但旧 SW 仍控制页面时，**普通刷新不会立刻生效**（新 JS 没机会运行），必须先注销 / 无痕。判别要点：HTML 里出现 `webpack.js?v=时间戳`、`eval-source-map`、无 `BUILD_ID` = dev 产物；N 悬浮球消失 = 客户端 JS 根本没接管。
 
 ---
 
@@ -280,6 +281,8 @@
 ---
 
 ## §8 变更记录（append-only，只记要点）
+
+- 2026-11-21 早：**修 Service Worker 缓存故障（用户手验发现的阻断性 bug，非产品逻辑回归）**。用户反馈 `npm run dev` 打开网页后样式全丢、卡「载入中…」、无 N 悬浮球、多次重试无效，PowerShell 无报错。定位为 `public/sw.js` cache-first 缓存首页 HTML 且缓存名永不失效，dev↔生产切换后旧 HTML 引用的带 hash 资源 404（详见 §6.3 新增条目）。**只改 2 个文件**：`public/sw.js`（缓存升级 v2 / 只缓存 icon+manifest / 导航与 `/_next/*` 走网络）、`src/components/SwRegister.tsx`（dev 主动注销残留 SW + 清缓存）。`npx tsc --noEmit` 0 错误、`node --check public/sw.js` 通过、服务端已吐出新 `sw.js`、首页 200。**未构建、未改任何业务逻辑、未动服务进程**（用户要求保留现场）。本轮方向用户已选 **C3 第 3 轮（Qwen 资讯 / 三模型路由）**，但按用户裁决「发现问题先修」，第 3 轮待本故障确认恢复后再单独走澄清门。
 
 - 2026-11-20 夜：**三期 C3 第 2 轮完成并推送**（与文件管理器改版、测试库种子保留**合并一轮**做）。用户最终修订 4 条：`html走obsidian` /「所有自定义设置手动 + 管家双通道，极简开关例外，管家 = 懂接口的人」/ 文件单击双击都打开 / 文件夹单击折叠、双击开资源管理器。落地：`src/lib/{filing-rules,open-with,settings,system-open}.ts` + 8 个新 API（`settings` 系列 5 / `system-open` / `internal-files/upload` / `libraries/vaults`）+ `FileTree` / `LibraryVaults` / `AiSettingsBox` 三组件 + 四处挂载 + `features.ts` 注册 `file-tree` / `ai-settings` + `globals.css`；`internal-tidy.ts` 规则来源改为可配规则表。新增 `scripts/{seed-vault,run-all-e2e,e2e-filetree,e2e-settings}.mjs`，**不改任何已验收 e2e 脚本**。验收：`tsc --noEmit` 0 错误、build **54 页**、`e2e-settings` **67/67**（1 次最小真实模型调用，自然语言 → 草案链路已验证）、`e2e-filetree` **50/50**、全量 18 套回归见 §3。同步更新 §2 / §3 / §4 / §5 / §6 / §7（决策 23~28）/ §9.1 / §9.3 / §9.5。收尾阶段额外定位并修掉全量回归的三类环境假失败：调度配置自锁、只读 `.git` 删不掉、以及**证伪 C3-1「跑全量要关 `SAFE_DELETE_ENABLED`」旧口径**（会让 4 套 e2e 崩溃），改为只调大批量阈值 + 总入口自愈复位 + 修 `e2e-proposals` 的 `killGit()` 清理函数（不动断言）。浏览器交互待用户手验。
 - 2026-11-20 22:37：**只同步信息、未动工**（用户明确要求）。用户提出文件管理器 UI 改版 4 条（树状紧凑 / 点击双击打开 / 去格式分类栏 / 搜索暂不做）、加库与加文件的定义、取消「真实库」概念、测试库模拟数据保留；并在测试库造了 15 个模拟文件让三个 tab 有内容（真实接口已验证，不属于代码改动）。本轮**只改 `PRD.md`**：重写 §6.2、新增 §9.5、补 §3 候选注 / §7 决策 18~22 / §9.2 口径修正。未写代码、未构建、未跑验收；`git status` 除本文件外为空。
